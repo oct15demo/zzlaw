@@ -1,0 +1,2 @@
+rm scotus
+ln -s /Users/charles/data/sco_1 scotus
