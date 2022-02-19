@@ -10,6 +10,7 @@
 #include <time.h>
 #include <unordered_map>
 #include <iostream>
+#include "zzoflaw.h"
 
 // ([{'id1': '100000', 'folder': 'scotus', 'full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES', 'standard_reporter': 'U.S.', 'volume': '259', 'page_number': '188', 'year': '1922'}], '1922')
 /*
@@ -18,18 +19,6 @@ This was on a MacAir macOS 10.13 Eclipse Oxygen 3a c++ 4.2.1 clang 900 –
 */
 using namespace std;
 
-
-typedef  unordered_map<const char*, const char*> HashMap;
-typedef struct tuppleware{const char* key; const char* value;} Tupple;
-
-typedef struct mapYear {HashMap* valuesMap; string year;} MapYear;
-typedef struct tupplesYear {struct tuppleware* tupples; int length; const char* year;} TupplesYear;
-
-char n = '\n';
-int pr = 1;
-
-int mapLen;
-
 Tupple* map2tupples(HashMap realMap){
 
 	mapLen = realMap.size();
@@ -37,7 +26,7 @@ Tupple* map2tupples(HashMap realMap){
 	Tupple* mapZero = mapList;
 
 	for (pair<const char*, const char*> entry: realMap){
-		if(pr)cout<<entry.first<<n;
+		if(pr)cout<<entry.first<<", ";
 		int flen = (strlen(entry.first))+1;
 		int slen = (strlen(entry.second))+1;
 		char* fptr = (char*)malloc(flen*sizeof(char));
@@ -46,7 +35,7 @@ Tupple* map2tupples(HashMap realMap){
 		strcpy(sptr,entry.second);
 		fptr[flen-1]='\0';
 		sptr[slen-1]='\0';
-		if(pr)cout<<fptr<<n;
+		if(pr)cout<<fptr<<", ";
 		mapList->key = fptr;
 		mapList->value = sptr;
 		if(pr)cout<<mapList[0].key<<n;
@@ -57,25 +46,6 @@ Tupple* map2tupples(HashMap realMap){
 	return mapZero;
 }
 
-static HashMap valHash = {
-		{ "id1", "100000"},
-		{ "folder", "scotus"},
-		{ "full_name", "Supreme Court of the United States"},
-		{ "casename", "morrisdale coal co v united states"},
-		{ "party1", "MORRISDALE COAL CO"},
-		{ "party2", "UNITED STATES"},
-		{ "standard_reporter", "U.S."},
-		{ "volume", "259"},
-		{ "page_number", "188"},
-		{ "year", "1922"}
-    };
-
-
-
-Tupple tuppledMaps [1];
-
-
-
 extern "C"
 Tupple* getVals(){
 	if(pr)cout<<"hello from getVals"<<n;
@@ -85,9 +55,9 @@ Tupple* getVals(){
 }
 
 extern "C"
-TupplesYear getValsYear(){
+TupplesYear getValsYear(HashMap pydict){
 	if(pr)cout<<"hello from getValsYear"<<n;
-	Tupple* tuppledMap = map2tupples(valHash);
+	Tupple* tuppledMap = map2tupples(pydict);
 	TupplesYear* valsYear = (TupplesYear*)malloc(sizeof(TupplesYear));
 	valsYear->tupples=tuppledMap;
 	char* year = (char*)malloc(sizeof(char)*5);

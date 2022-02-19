@@ -602,7 +602,7 @@ def fill_in_data_from_IE_outfile(IE_file,values,txt_file,trace=False):
     if os.path.isfile(IE_file): # .case10 files
         with open(IE_file, encoding='utf-8') as instream:
             for line in instream:
-                pass
+                x=line #pass
     t.end("line_pass")
     docket_relations = {}
     if os.path.isfile(IE_file): # .case10 files
