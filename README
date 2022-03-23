@@ -1,1 +1,5 @@
+aout.py is the main entry point. runs on python 3.6 or better (I hope).
+a.out is the C binary, but you mostly likely have to rebuild it, was compiled on a mac. buildscript.sh provided for your convenience.
+a.out will also run by itself.
+
 makecsv4.py and makecsv5.py are there just for reference, they are the original files and not being used by the running programs.
