@@ -10,14 +10,81 @@
 #include <time.h>
 #include <unordered_map>
 #include <iostream>
+
 #include "zzoflaw.h"
+
+#include <spdlog/spdlog.h>
+#include "spdlog/sinks/basic_file_sink.h" // support for basic file logging
+#include "spdlog/sinks/ostream_sink.h"
+#include "logging.h"
+
+#include <sstream>
+#include <functional>
+#include <streambuf>
+#include <ostream>
+#include <functional>
+#include <string>
+#include <memory>
+#include <iostream>
 
 // ([{'id1': '100000', 'folder': 'scotus', 'full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES', 'standard_reporter': 'U.S.', 'volume': '259', 'page_number': '188', 'year': '1922'}], '1922')
 /*
 If using Eclipse, properties, C/C++ Build, Settings, GCC C++ Compiler, Dialect, Language standard, you can select ISO C++11 (-std=c++0x).
 This was on a MacAir macOS 10.13 Eclipse Oxygen 3a c++ 4.2.1 clang 900 –
 */
-using namespace std;
+
+static spdlog::logger logger = getLog();
+
+
+typedef std::function<void(std::string)> function_type;
+
+class functionbuf : public std::streambuf {
+	private:
+
+	typedef std::streambuf::traits_type traits_type;
+
+    function_type d_function;
+
+    char  d_buffer[1024];
+
+    int overflow(int c) {
+        if (!traits_type::eq_int_type(c, traits_type::eof())) {
+            *this->pptr() = traits_type::to_char_type(c);
+            this->pbump(1);
+        }
+        return this->sync()? traits_type::not_eof(c): traits_type::eof();
+    }
+
+    int sync() {
+        if (this->pbase() != this->pptr()) {
+            this->d_function(std::string(this->pbase(), this->pptr()));
+            this->setp(this->pbase(), this->epptr());
+        }
+        return 0;
+    }
+
+	public:
+
+    functionbuf(function_type const& function): d_function(function) {
+        this->setp(this->d_buffer, this->d_buffer + sizeof(this->d_buffer) - 1);
+    }
+};
+
+class ofunctionstream : private virtual functionbuf, public std::ostream {
+	public:
+
+    ofunctionstream(function_type const& function): functionbuf(function), std::ostream(static_cast<std::streambuf*>(this)) {
+        this->flags(std::ios_base::unitbuf);
+    }
+};
+
+
+/******************************************************
+ *
+ *                Meat and Potatoes
+ *
+ ******************************************************/
+
 
 Tupple* map2tupples(HashMap realMap){
 
@@ -50,6 +117,7 @@ extern "C"
 Tupple* getVals(){
 	if(pr)cout<<"hello from getVals"<<n;
 	Tupple* tuppledMap = map2tupples(valHash);
+	//logger.info("hello from getVals");
 
 	return tuppledMap;
 }
@@ -69,7 +137,46 @@ TupplesYear getValsYear(HashMap pydict){
 	return *valsYear;
 }
 
+void some_function(std::string const& value) {
+    std::cout << "some_function(" << value << ")\n";
+}
+
+int streamcallsfunc() {
+    ofunctionstream out(&some_function);
+    out << "hello" << ',' << " world: " << 42 << "\n";
+    printf("%s", "calling all cars\n");
+
+    auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt> (out);
+    auto streamlogger = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
+    streamlogger->info("Welcome to spdlog going through out, ostream_sink, some_function!");
+
+    out << std::nounitbuf << "not" << " as " << "many" << " calls\n" << std::flush;
+    return 1;
+}
+
+/*
+template<class _Tp, class ..._Args>
+inline _LIBCPP_INLINE_VISIBILITY
+typename enable_if
+<
+    !is_array<_Tp>::value,
+    shared_ptr<_Tp>
+>::type logger<spdlog::logger>;*/
+int foo(){
+	logger.debug("hello foo");
+	return 0;
+}
+
+
 int main(int argc, char**argv){
+	//spdlog::logger logger = *spdlog::stdout_color_mt("log");
+    ofunctionstream out(&some_function);
+    //auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt> (out);
+    //logptr = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
+    logger.warn("I warned you already");
+
+    //spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v with the at %@");
+    cout << typeid(logger).name() << endl;
 	if(pr)cout<<"hello from fillindata main"<<n;
 	TupplesYear valsyear = getValsYear();
 	Tupple* vals = getVals();
@@ -78,8 +185,20 @@ int main(int argc, char**argv){
 		cout<<valsyear.year<<n;
 		cout<<valsyear.length<<n;
 	}
+	//logger.set_pattern(">>>>>>>>> %H:%M:%S %z %v <<<<<<<<<");
+	//logger.set_pattern(">>>>>>>>> [%H:%M:%S %z] [thread %t] %v %s %# <<<<<<<<<");
+	//malloc error if left in : spdlog::set_default_logger((std::shared_ptr<spdlog::logger>)&logger);
+    SPDLOG_INFO("this work?");
+    logger.info("Welcome to spdlog going through out, ostream_sink, some_function!");
+
+    logger.log(spdlog::source_loc{"/Users/charles/Documents/eclipse-workspace/zzoflaw/legaltexts/fillindata.cpp", 186, static_cast<const char *>(__FUNCTION__)}, spdlog::level::info, ">>>>>>>>> [%H:%M:%S %z] [thread %t] %v %s %# <<<<<<<<<");
+
+    foo();
+    footwo();
+	//string s =fmt::format("malloc file {} size_t {}", "filename", 4 );
+	//spdlog::info("/Users/charles/Documents/eclipse-workspace/zzoflaw(199):this is the test of VS format");
     return 1;
 
 }
 
-//std::tuple<double, char, std::string> get_student(int id)
+
