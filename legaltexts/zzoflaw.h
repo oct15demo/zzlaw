@@ -1,6 +1,12 @@
 #ifndef ZZOFLAW_H_
 #define ZZOFLAW_H_
 
+
+#ifndef strtok_r
+#define strtok_r(str, delim, saveptr) strtok_s(str, delim, saveptr)
+#endif
+
+#include <errno.h>
 using namespace std;
 
 typedef  unordered_map<const char*, const char*> HashMap;
@@ -10,7 +16,7 @@ typedef struct mapYear {HashMap* valuesMap; string year;} MapYear;
 typedef struct tupplesYear {struct tuppleware* tupples; int length; const char* year;} TupplesYear;
 
 const char n = '\n';
-const int pr = 1;
+const int pr = 0;
 
 static int mapLen;
 
@@ -37,5 +43,17 @@ Tupple* getVals();
 
 extern "C"
 TupplesYear getValsYear(HashMap pydict=valHash);
+
+TupplesYear fillInForReal(char* IE_file, Tupple* values, int tupplelength, char* txt_file,bool trace=false);
+
+//utils
+bool fileExists(char* filepath);
+off_t fileSize(const char* filename);
+size_t castOffSize(off_t offsize, const char* source);
+typedef struct FileInput {int size; const char* filename; char* tok_append; unsigned char* fileptr;} FileIn;
+FileInput* readFile(char* filename, FileIn* fileInput);
+char* process_line(char* file_read);
+
+int footwo();
 
 #endif /* ZZOFLAW_H_ */

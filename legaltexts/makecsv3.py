@@ -578,7 +578,7 @@ def fill_in_data_from_IE_outfile(IE_file,values,txt_file,trace=False):
     ##              but merge it otherwise
     n="\n"
     logger.debug(IE_file, n, values, n, txt_file, n)
-    if False:
+    if False: # This print statement used to create test data for running the function by itself
         print ("(\"",IE_file,"\",\"",values,"\",\"",txt_file,"\"),",n)
 
     first_citation = False

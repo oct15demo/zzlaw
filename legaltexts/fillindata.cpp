@@ -166,9 +166,10 @@ int foo(){
 	logger.debug("hello foo");
 	return 0;
 }
-
+#include <clocale>
 
 int main(int argc, char**argv){
+	std::setlocale(LC_ALL, "en_US.UTF-8");
 	//spdlog::logger logger = *spdlog::stdout_color_mt("log");
     ofunctionstream out(&some_function);
     //auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt> (out);

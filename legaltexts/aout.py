@@ -1,6 +1,8 @@
 from ctypes import *
 from utils.timerecorder import Trex as tr
 import ctypes
+from utils import logger
+from utils.timerecorder import Trex as t
 
 # Parameters to pass to function
 class Entry(Structure):
@@ -23,23 +25,26 @@ py_print_array.argtypes = [ctl.ndpointer(np.float64,
 A = np.array([1.4,2.6,3.0], dtype=np.float64)"""
 
 
-c_fillindata = "a.out"
+c_fillindata = "../Debug/zzoflaw"
 makecsv3c = CDLL(c_fillindata)
-fill_in_c = makecsv3c.fill_in_data_from_IE_outfile
+fill_in_c = makecsv3c.fillInDataFromIEOutfile
 fill_in_c.restype =valArrayYear
 fill_in_c.argtypes = [c_char_p, POINTER(Entry), c_int, c_char_p]
 
-IE_file = b'scotus/100000.case10' 
+#IE_file = b'scotus/100000.case10' 
+IE_file = b'/Users/charles/root_100000.case10' 
 valdict= {'id1':'100000', 'folder':'scotus','full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES'}
 vallength = len(valdict)
 tupplelist = [Entry(bytes(item[0],'utf-8'),bytes(item[1],'utf-8')) for item in valdict.items()]
 
 
-values = (Entry * vallength)(*tupplelist,)
+values = (Entry * vallength)(*tupplelist,)#unpack, trailing comma makes it a tupple
 #values = (Entry * 2)( Entry(b'id1', b'100000'), Entry(b'folder',b'scotus'))#, ('full_name', 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES'] 
 txt_file = b'scotus/100000.txt'
 
+t.start("fill_in_c")
 values=fill_in_c(IE_file, values, vallength, txt_file)
+t.end("fill_in_c")
 
 print("\n           Values returned from c code\n\
 ____________________________________________________\
@@ -55,4 +60,10 @@ valuesDict={}
 for i in range(values.mapLength):
     valuesDict[values.valuesMap[i].key.decode("utf-8")]= values.valuesMap[i].value.decode("utf-8")
 
-print("\nTurned into dictionary:\n",valuesDict)          
+print("\nTurned into dictionary:\n",valuesDict)
+
+print("\n")
+t.prRex()
+print(t)
+t.prNice()
+t.prDetails()    

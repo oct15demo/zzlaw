@@ -18,13 +18,41 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "logging.h"
-
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 #include "fmt/core.h"
 
 #include "zzoflaw.h"
+#include <xercesc/framework/MemBufInputSource.hpp>
+
+
+#include "SAX2Count.hpp"
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+#if defined(XERCES_NEW_IOSTREAMS)
+#include <fstream>
+#else
+#include <fstream.h>
+#endif
+#include <xercesc/util/OutOfMemoryException.hpp>
+#include <xercesc/framework/MemBufInputSource.hpp>
+
+#include <xercesc/util/TransService.hpp>
+#include <xercesc/util/XMLString.hpp>
+
+
+#include <CoreFoundation/CoreFoundation.h>
+#include <iostream>
+#include <locale.h>
+#include <locale>
+#include <clocale>
+
+int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser);
+
+//ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
+#define LOGGER_ERROR
+#include "logging.h"
 
 static spdlog::logger logger = getLog();
 
@@ -53,9 +81,6 @@ unsigned char* getDataPtr(){
 	return dataPtr;
 }
 
-//auto logger = *spdlog::get("log");logger = 	logger = *spdlog::stdout_color_mt("log");
-
-
 int mainfromfillindata(int argc, char**argv){
 	if(pr)cout<<"hello from fillindata main"<<n;
 	TupplesYear valsyear = getValsYear();
@@ -68,8 +93,6 @@ int mainfromfillindata(int argc, char**argv){
     return 1;
 
 }
-
-//std::tuple<double, char, std::string> get_student(int id)
 
 /*******************************************************************
  *
@@ -139,13 +162,133 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		if(EXIT)
 			throw;// @suppress("Invalid arguments")
 	}
-	unsigned char* file_read = readFile(IE_file);
+	FileIn* fileIn = (FileIn*)malloc(sizeof(FileIn));
+
+   /************************************************************************
+    *
+    * Appending three characters to the end of the file is done to allow
+    * strtok to always work properly. The readFile function reads the entire file
+    * at once into a single char*. It's then broken into lines by strtok.
+    * Appending the strtok delimiter, a non delimiter, and a second delimiter,
+    * allows strtok to end properly while also providing a way to get a proper
+    * checksum of the bytes consumed by all the tokenized lines and delimiters.
+    *
+	************************************************************************/
+	fileIn->tok_append = "\n \n"; //length is added to malloc in readFile
+	for(int i = 0; i < 1000; i++){
+		readFile(IE_file, fileIn);
+	}
+
+	/* add token, space, token to file for checksum, see design  notes for details.*/
+	int append_len = strlen(fileIn->tok_append);
+	int size = fileIn->size;
+	for(int i=0;i<=append_len;i++){
+		fileIn->fileptr[size + i] = fileIn->tok_append[i];
+	}
+	/* strtok delimiter must be char*, used for strtok */
+	char tok_delim[2];
+	tok_delim[0] = fileIn->tok_append[0];
+	tok_delim[1] = '\0';
+
+	bool doStrtok = false;
+	if (doStrtok){
+		/* kick off strtok, before put in while, never null, due to appended*/
+		char* line = strtok((char*)(fileIn->fileptr), tok_delim);
+		long len_read = line-(char*)fileIn->fileptr;
+		//printf("chars consumed %ld\n", len_read);
+		process_line(line);
+		while ((line = strtok(NULL, "\n"))!= NULL){
+			len_read = line-(char*)fileIn->fileptr;
+			//printf("chars consumed %ld\n", len_read);
+			process_line(line);
+		}
+		logger.debug(format("final chars consumed {}", len_read)); // @suppress("Invalid arguments")
+		if(len_read - fileIn->size != 1){
+			logger.error( format("len_read {} - fileIn->size {} != 1",len_read, fileIn->size)); // @suppress("Invalid arguments")
+			if(EXIT)exit(-1);
+		}
+	}
+
+
+
+
+    const char*                  xmlFile      = 0;
+    SAX2XMLReader::ValSchemes    valScheme    = SAX2XMLReader::Val_Auto;
+    bool                         doNamespaces = true;
+    bool                         doSchema = true;
+    bool                         schemaFullChecking = false;
+    bool                         identityConstraintChecking = true;
+    bool                         doList = false;
+    bool                         errorOccurred = false;
+    bool                         namespacePrefixes = false;
+    bool                         recognizeNEL = false;
+    char                         localeStr[64];
+    memset(localeStr, 0, sizeof localeStr);
+
+	try {
+		if (strlen(localeStr)) {
+			XMLPlatformUtils::Initialize(localeStr);
+		} else {
+			XMLPlatformUtils::Initialize();
+		}
+		if (recognizeNEL) {
+			XMLPlatformUtils::recognizeNEL(recognizeNEL);
+		}
+	} catch (const XMLException& toCatch) {
+		XERCES_STD_QUALIFIER cerr << "Error during initialization! Message:\n"
+				<< StrX(toCatch.getMessage()) << XERCES_STD_QUALIFIER endl;
+		exit(-1);//return;
+	}
+	SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
+	parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
+	parser->setFeature(XMLUni::fgXercesSchema, doSchema);
+	parser->setFeature(XMLUni::fgXercesHandleMultipleImports, true);
+	parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
+	parser->setFeature(XMLUni::fgXercesIdentityConstraintChecking, identityConstraintChecking);
+	parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
+
+	if (valScheme == SAX2XMLReader::Val_Auto){
+		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+		parser->setFeature(XMLUni::fgXercesDynamic, true);
+	}
+	if (valScheme == SAX2XMLReader::Val_Never){
+		parser->setFeature(XMLUni::fgSAX2CoreValidation, false);
+	}
+	if (valScheme == SAX2XMLReader::Val_Always){
+		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+		parser->setFeature(XMLUni::fgXercesDynamic, false);
+	}
+    SAX2CountHandlers handler = SAX2CountHandlers();
+    parser->setContentHandler(&handler);
+    parser->setErrorHandler(&handler);
+	int run_num = 1000;
+	for(int i = 0; i < run_num; i++){
+		parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);
+	}
+	delete parser;
+
+	//And call the termination method
+	XMLPlatformUtils::Terminate();
+
+	if (errorOccurred)
+		logger.error("ERROR: error occurred");
+		//return 4;
+	else
+		logger.info("process without error before getValsYear");
+		//return 0;
 
 	return getValsYear();
+
+}
+
+char* process_line(char* line_read){
+
+	//printf("%s\n",line_read);
+	return line_read;
+
 }
 
 // TODO: move to header
-
 
 //TODO: add declarations to header and move util functions to a separate file
 
@@ -182,34 +325,43 @@ size_t castOffSize(off_t offsize, const char* source="unnamed source"){
 	}
 	return castoff;
 }
-//https://www.gnu.org/software/libc/manual/html_node/Error-Messages.html
-unsigned char* readFile(char* filename){
 
+//https://www.gnu.org/software/libc/manual/html_node/Error-Messages.html
+FileInput* readFile(char* filename, FileIn* fileIn){
 
 	off_t file_off_t = fileSize(filename);
 	size_t bytes_read, bytes_expected = castOffSize(file_off_t, filename);
-
 	int fd;
+
 	if ((fd = open(filename,O_RDONLY)) < 0){
 		logger.error(format("Error opening file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 	unsigned char* dataptr;
-	if ((dataptr = (unsigned char*)malloc(bytes_expected)) == NULL){
+
+	if ((dataptr = (unsigned char*)malloc(bytes_expected + strlen(fileIn->tok_append) + 1)) == NULL){ // + 1 set to '\0' for safe strtok
 		// printf("%s %zu","data malloc for file ", filename, bytes_expected );
 		logger.error(format("malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
+
 	if (bytes_expected >= 1073741824) //1073741824 GB 1048576 MB 1024 kb
-		logger.warn(format("Warning: reading large file size > 1 GB filename {} {:.{}f} GB", filename, bytes_expected/1073741824, 1 )); // @suppress("Invalid arguments")
+		logger.warn(format("Warning: reading large file size > 1 GB filename {} {} GB", filename, bytes_expected/1073741824, 1 )); // @suppress("Invalid arguments")
+
 	bytes_read = read(fd, dataptr, bytes_expected);
+
 	if (bytes_read != bytes_expected){
 		logger.error(format("Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
-	setDataPtr(dataptr); //getDataPtr() used to free
-	return dataptr;
+	fileIn->fileptr = dataptr;
+	fileIn->size = bytes_expected;
+	int len = strlen(filename)+1;
+	char* fname = (char*)malloc(len);
+	strncpy(fname, filename, len);
+	fileIn->filename = fname;
+	return fileIn;
 }
 
 bool fileExists(char* filepath){ //SO 12774207
