@@ -50,8 +50,9 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int tupplelength, char*
 bool fileExists(char* filepath);
 off_t fileSize(const char* filename);
 size_t castOffSize(off_t offsize, const char* source);
-typedef struct FileInput {int size; const char* filename; char* tok_append; unsigned char* fileptr;} FileIn;
-FileInput* readFile(char* filename, FileIn* fileInput);
+typedef struct FileInput {int size; const char* filename; char* tok_append {NULL}; unsigned char* fileptr;} FileIn;
+FileInput* readFile(char* filename, FileIn* fileInput, bool addRoot=false);
+void addRootElement(const char* root_start, const char* root_end, int len_start, int len_end, unsigned char* dataptr, int bytes_read);
 char* process_line(char* file_read);
 
 int footwo();

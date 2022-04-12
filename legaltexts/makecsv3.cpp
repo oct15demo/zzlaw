@@ -164,19 +164,9 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	}
 	FileIn* fileIn = (FileIn*)malloc(sizeof(FileIn));
 
-   /************************************************************************
-    *
-    * Appending three characters to the end of the file is done to allow
-    * strtok to always work properly. The readFile function reads the entire file
-    * at once into a single char*. It's then broken into lines by strtok.
-    * Appending the strtok delimiter, a non delimiter, and a second delimiter,
-    * allows strtok to end properly while also providing a way to get a proper
-    * checksum of the bytes consumed by all the tokenized lines and delimiters.
-    *
-	************************************************************************/
 	fileIn->tok_append = "\n \n"; //length is added to malloc in readFile
-	for(int i = 0; i < 1000; i++){
-		readFile(IE_file, fileIn);
+	for(int i = 0; i < 1; i++){//looptheloop 1000
+		readFile(IE_file, fileIn, true);
 	}
 
 	/* add token, space, token to file for checksum, see design  notes for details.*/
@@ -185,32 +175,6 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	for(int i=0;i<=append_len;i++){
 		fileIn->fileptr[size + i] = fileIn->tok_append[i];
 	}
-	/* strtok delimiter must be char*, used for strtok */
-	char tok_delim[2];
-	tok_delim[0] = fileIn->tok_append[0];
-	tok_delim[1] = '\0';
-
-	bool doStrtok = false;
-	if (doStrtok){
-		/* kick off strtok, before put in while, never null, due to appended*/
-		char* line = strtok((char*)(fileIn->fileptr), tok_delim);
-		long len_read = line-(char*)fileIn->fileptr;
-		//printf("chars consumed %ld\n", len_read);
-		process_line(line);
-		while ((line = strtok(NULL, "\n"))!= NULL){
-			len_read = line-(char*)fileIn->fileptr;
-			//printf("chars consumed %ld\n", len_read);
-			process_line(line);
-		}
-		logger.debug(format("final chars consumed {}", len_read)); // @suppress("Invalid arguments")
-		if(len_read - fileIn->size != 1){
-			logger.error( format("len_read {} - fileIn->size {} != 1",len_read, fileIn->size)); // @suppress("Invalid arguments")
-			if(EXIT)exit(-1);
-		}
-	}
-
-
-
 
     const char*                  xmlFile      = 0;
     SAX2XMLReader::ValSchemes    valScheme    = SAX2XMLReader::Val_Auto;
@@ -261,7 +225,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
     SAX2CountHandlers handler = SAX2CountHandlers();
     parser->setContentHandler(&handler);
     parser->setErrorHandler(&handler);
-	int run_num = 1000;
+	int run_num = 1; //looptheloop 1000
 	for(int i = 0; i < run_num; i++){
 		parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);
 	}
@@ -281,23 +245,10 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 
 }
 
-char* process_line(char* line_read){
-
-	//printf("%s\n",line_read);
-	return line_read;
-
-}
-
-// TODO: move to header
-
-//TODO: add declarations to header and move util functions to a separate file
-
 // https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
 //https://stackoverflow.com/questions/238603/how-can-i-get-a-files-size-in-c
 //https://unix.stackexchange.com/questions/621157/why-is-the-type-of-stat-st-size-not-unsigned-int
 //https://stackoverflow.com/questions/62900964/how-to-properly-check-that-an-off-t-value-wont-overflow-when-converted-to-size
-//man sysexits
-
 
 off_t fileSize(const char *filename) try {
     struct stat st;
@@ -327,19 +278,33 @@ size_t castOffSize(off_t offsize, const char* source="unnamed source"){
 }
 
 //https://www.gnu.org/software/libc/manual/html_node/Error-Messages.html
-FileInput* readFile(char* filename, FileIn* fileIn){
+/*
+ *  Read file from given path in param filename
+ *  Store entire file as one unsigned char* dynamically allocated with malloc
+ *  The parameter addRoot is a hack to add <root> </root> to start and end of
+ *  file read respectively to otherwise invalid XML which xerces won't parse.
+ *  Adding root tags in creation process left as a TODO
+ */
+
+//TODO: Make valid XML files that don't require adding root elements
+
+FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 
 	off_t file_off_t = fileSize(filename);
 	size_t bytes_read, bytes_expected = castOffSize(file_off_t, filename);
 	int fd;
-
 	if ((fd = open(filename,O_RDONLY)) < 0){
 		logger.error(format("Error opening file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
-	unsigned char* dataptr;
 
-	if ((dataptr = (unsigned char*)malloc(bytes_expected + strlen(fileIn->tok_append) + 1)) == NULL){ // + 1 set to '\0' for safe strtok
+	unsigned char* dataptr;
+	const char* root_start = addRoot?"<root>\n":"";
+	const char* root_end = addRoot?"</root>":"";
+	int len_start = strlen(root_start);
+	int len_end = strlen(root_end);
+
+	if ((dataptr = (unsigned char*)malloc(bytes_expected + len_start + len_end + 1)) == NULL){ // + 1 set to '\0' for safe strtok
 		// printf("%s %zu","data malloc for file ", filename, bytes_expected );
 		logger.error(format("malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
@@ -348,7 +313,10 @@ FileInput* readFile(char* filename, FileIn* fileIn){
 	if (bytes_expected >= 1073741824) //1073741824 GB 1048576 MB 1024 kb
 		logger.warn(format("Warning: reading large file size > 1 GB filename {} {} GB", filename, bytes_expected/1073741824, 1 )); // @suppress("Invalid arguments")
 
-	bytes_read = read(fd, dataptr, bytes_expected);
+	bytes_read = read(fd, dataptr + len_start, bytes_expected);
+
+	if (addRoot)
+		addRootElement(root_start, root_end, len_start, len_end, dataptr, bytes_read);
 
 	if (bytes_read != bytes_expected){
 		logger.error(format("Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
@@ -356,7 +324,7 @@ FileInput* readFile(char* filename, FileIn* fileIn){
 	}
 
 	fileIn->fileptr = dataptr;
-	fileIn->size = bytes_expected;
+	fileIn->size = bytes_expected + len_start + len_end;
 	int len = strlen(filename)+1;
 	char* fname = (char*)malloc(len);
 	strncpy(fname, filename, len);
@@ -371,4 +339,13 @@ bool fileExists(char* filepath){ //SO 12774207
 	} else {
 		return false;
 	}
+}
+
+void addRootElement(const char* root_start, const char* root_end, int len_start, int len_end,
+		unsigned char* dataptr, int bytes_read){
+
+	strncpy((char*)dataptr, root_start, len_start);
+	strncpy((char*)dataptr+bytes_read + len_start, root_end, len_end);
+	printf("file read and rooted:\n%s", (char*)dataptr);
+
 }

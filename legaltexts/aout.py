@@ -31,8 +31,9 @@ fill_in_c = makecsv3c.fillInDataFromIEOutfile
 fill_in_c.restype =valArrayYear
 fill_in_c.argtypes = [c_char_p, POINTER(Entry), c_int, c_char_p]
 
-#IE_file = b'scotus/100000.case10' 
-IE_file = b'/Users/charles/root_100000.case10' 
+IE_file = b'scotus/100000.case10'
+
+#IE_file = b'/Users/charles/root_100000.case10' 
 valdict= {'id1':'100000', 'folder':'scotus','full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES'}
 vallength = len(valdict)
 tupplelist = [Entry(bytes(item[0],'utf-8'),bytes(item[1],'utf-8')) for item in valdict.items()]
