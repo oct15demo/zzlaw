@@ -27,19 +27,48 @@
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/sax/SAXException.hpp>
 
+#include <unordered_map>
+#include <vector>
+#include "zzoflaw.h"
 
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
+#include "fmt/core.h"
+
+#define tr XMLString::transcode
+
+//#define LOGGER_ERROR // don't use log level error since macro conflicts with handlers error method
+#ifndef LOGGING_LEVEL_LINER
+	#include "logging.h"
+#endif
+
+static spdlog::logger logger = getLog();
 
 // ---------------------------------------------------------------------------
 //  SAX2CountHandlers: Constructors and Destructor
 // ---------------------------------------------------------------------------
 SAX2CountHandlers::SAX2CountHandlers() :
 
-    fAttrCount(0)
-    , fCharacterCount(0)
-    , fElementCount(0)
-    , fSpaceCount(0)
-    , fSawErrors(false)
+	  fAttrCount(0)
+
+	, fCharacterCount(0)
+	, fSpaceCount(0)
+
+	, first_citation(NULL) //char*
+	, first_equiv_relations_type(NULL) //char*
+	, fElementCount(0)
+	, first_X_v_Y(0)
+	, latest_date(NULL) //char*
+	, first_case_citation_other(0)
+	, first_standard_cases(0)
+	, citation_line_numbers(0)
+	, local_dict(0)
+	, fSawErrors(false)
+	, mp_attributes(0)
+
+
 {
+	current_line = 0; //int
 }
 
 SAX2CountHandlers::~SAX2CountHandlers()
@@ -49,6 +78,8 @@ SAX2CountHandlers::~SAX2CountHandlers()
 // ---------------------------------------------------------------------------
 //  SAX2CountHandlers: Implementation of the SAX DocumentHandler interface
 // ---------------------------------------------------------------------------
+
+
 void SAX2CountHandlers::startElement(const XMLCh* const  uri
                                    , const XMLCh* const localname
                                    , const XMLCh* const  qname
@@ -56,29 +87,30 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 
     fElementCount++;
     fAttrCount += attrs.getLength();
-    char* el_localname = XMLString::transcode(localname);
-    //std::cout<<XMLString::transcode(localname)<<std::endl;
-    char* attr_name;
-    char* attr_value;
-	XMLCh* dummy_name_ch = XMLString::transcode("dummyName");
-    for(int i=0; i<attrs.getLength(); i++){
-    	//std::cout << XMLString::transcode(attrs.getLocalName(i)) << ":";
-    	//std::cout << XMLString::transcode(attrs.getValue(i)) << " ";
-    	attr_name = XMLString::transcode(attrs.getLocalName(i));
-    	attr_value = XMLString::transcode(attrs.getValue(i));
-    	if (attrs.getValue(dummy_name_ch)!= NULL){
-    		// do something
-    	}
-    	XMLString::release(&attr_name);
-    	XMLString::release(&attr_value);
-    }
-    XMLString::release(&el_localname);
-    //XMLString::release(&attr_name);
-    //XMLString::release(&attr_value);
-    XMLString::release(&dummy_name_ch);
-    //std::cout << std::endl;
-    //std::cout<<XMLString::transcode(uri)<<std::endl;
 
+    char* el_localname = XMLString::transcode(localname);
+
+    const XMLCh* line_num;
+    if ((line_num = attrs.getValue(tr("line"))) != NULL){
+    	char* line_int = tr(line_num); //or XMLString::parseInt
+    	std::cout<<line_int<<std::endl;
+    	logger.warn(format("line number in attr: {}",line_int)); // @suppress("Invalid arguments")
+    }
+
+    if (XMLString::compareString(localname, tr("citation")) == 0 ){
+    	mp_attributes = &attrs;
+    	const XMLCh* xmlkey = attrs.getValue(tr("id"));
+    	citations[xmlkey]= (void*)mp_attributes;
+        if (attrs.getValue(tr("entry_type")) == NULL){
+
+        	SPDLOG_ERROR("ERROR: \"entry_type\" not found attributes");
+
+        }
+    }
+
+    //XMLString::release(&attr_name);
+    	//XMLString::release(&attr_value);
+    //XMLString::release(&el_localname);
 }
 
 void SAX2CountHandlers::characters(  const   XMLCh* const chars

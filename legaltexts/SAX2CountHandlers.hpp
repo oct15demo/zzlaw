@@ -23,14 +23,32 @@
 // ---------------------------------------------------------------------------
 //  Includes
 // ---------------------------------------------------------------------------
+#include <string.h>
+#include <unordered_map>
+#include <vector>
+
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
+//typedef basic_string<char, char_traits<char>, allocator<char> > string;
 
 XERCES_CPP_NAMESPACE_USE
 
 class SAX2CountHandlers : public DefaultHandler
 {
 public:
+
+	char* first_citation; //
+	std::vector<std::string> first_X_v_Y;
+	std::vector<std::string>first_case_citation_other;
+	std::vector<std::string>first_standard_cases;
+	std::vector<int>citation_line_numbers;
+	char* first_equiv_relations_type; //
+	int current_line;
+	std::unordered_map<std::string, std::string>local_dict;
+	char* latest_date; //
+	const Attributes* mp_attributes;
+	std::unordered_map<const XMLCh*, void*>citations;
+
     // -----------------------------------------------------------------------
     //  Constructors and Destructor
     // -----------------------------------------------------------------------

@@ -151,13 +151,13 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
 
     SAX2CountHandlers* handlergot = (SAX2CountHandlers*)parser->getContentHandler();
 	if (!handlergot->getSawErrors()) {
-/*
+
 		XERCES_STD_QUALIFIER cout << XMLString::transcode(xmlBuf.getSystemId()) << ": " //<< duration << " ms ("
 			<< handlergot->getElementCount() << " elems, "
 			<< handlergot->getAttrCount() << " attrs, "
 			<< handlergot->getSpaceCount() << " spaces, "
-			<< handlergot->getCharacterCount() << " chars)" << XERCES_STD_QUALIFIER endl;
-*/
+			<< handlergot->getCharacterCount() << " chars" << XERCES_STD_QUALIFIER endl;
+
 	} else {
 		errorOccurred = true;
 	}

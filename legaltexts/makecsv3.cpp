@@ -345,7 +345,7 @@ void addRootElement(const char* root_start, const char* root_end, int len_start,
 		unsigned char* dataptr, int bytes_read){
 
 	strncpy((char*)dataptr, root_start, len_start);
-	strncpy((char*)dataptr+bytes_read + len_start, root_end, len_end);
-	printf("file read and rooted:\n%s", (char*)dataptr);
+	strcpy((char*)dataptr+bytes_read + len_start, root_end);
+	printf("file read and rooted:\n%s\n", (char*)dataptr);
 
 }
