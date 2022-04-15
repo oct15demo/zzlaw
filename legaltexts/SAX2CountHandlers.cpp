@@ -35,6 +35,9 @@
 #include "spdlog/spdlog.h"
 #include "fmt/core.h"
 
+#include <xercesc/validators/schema/XSDLocator.hpp>
+#include <xercesc/sax/Locator.hpp>
+
 #define tr XMLString::transcode
 
 //#define LOGGER_ERROR // don't use log level error since macro conflicts with handlers error method
@@ -101,17 +104,34 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	mp_attributes = &attrs;
     	const XMLCh* xmlkey = attrs.getValue(tr("id"));
     	citations[xmlkey]= (void*)mp_attributes;
+
         if (attrs.getValue(tr("entry_type")) == NULL){
 
-        	SPDLOG_ERROR("ERROR: \"entry_type\" not found attributes");
+        	SPDLOG_ERROR("ERROR: \"entry_type\" not found in attributes of citation");
+
+        	//const XSDLocator &loc = XSDLocator();
+        	//const Locator* locator = this->getScanner()->getLocator();
+        	/*loc.setValues(const XMLCh* const systemId,
+        	              const XMLCh* const publicId,
+        	              const XMLFileLoc lineNo,
+        				  const XMLFileLoc columnNo);
+
+        	const XMLCh* shit = tr("shit");
+        	const SAXParseException e = SAXParseException(shit,loc);
+        	this->error(e);*/
+
 
         }
+
     }
+
+
 
     //XMLString::release(&attr_name);
     	//XMLString::release(&attr_value);
     //XMLString::release(&el_localname);
 }
+
 
 void SAX2CountHandlers::characters(  const   XMLCh* const chars
 								    , const XMLSize_t length) {

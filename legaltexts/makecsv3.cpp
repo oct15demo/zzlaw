@@ -27,6 +27,7 @@
 
 
 #include "SAX2Count.hpp"
+
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
@@ -47,7 +48,9 @@
 #include <locale.h>
 #include <locale>
 #include <clocale>
-
+#ifndef SAX2XML_READER_LOC
+#include "SAX2XMLReaderLoc.hpp"
+#endif
 int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
@@ -164,31 +167,16 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	}
 	FileIn* fileIn = (FileIn*)malloc(sizeof(FileIn));
 
-	fileIn->tok_append = "\n \n"; //length is added to malloc in readFile
 	for(int i = 0; i < 1; i++){//looptheloop 1000
 		readFile(IE_file, fileIn, true);
 	}
 
-	/* add token, space, token to file for checksum, see design  notes for details.*/
-	int append_len = strlen(fileIn->tok_append);
-	int size = fileIn->size;
-	for(int i=0;i<=append_len;i++){
-		fileIn->fileptr[size + i] = fileIn->tok_append[i];
-	}
-
-    const char*                  xmlFile      = 0;
-    SAX2XMLReader::ValSchemes    valScheme    = SAX2XMLReader::Val_Auto;
-    bool                         doNamespaces = true;
-    bool                         doSchema = true;
-    bool                         schemaFullChecking = false;
-    bool                         identityConstraintChecking = true;
-    bool                         doList = false;
-    bool                         errorOccurred = false;
-    bool                         namespacePrefixes = false;
     bool                         recognizeNEL = false;
     char                         localeStr[64];
     memset(localeStr, 0, sizeof localeStr);
 
+    // On avoiding seg faults:
+    // https://xml.apache.org/xerces-c-new/faq-parse.html#faq-5
 	try {
 		if (strlen(localeStr)) {
 			XMLPlatformUtils::Initialize(localeStr);
@@ -202,34 +190,58 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		XERCES_STD_QUALIFIER cerr << "Error during initialization! Message:\n"
 				<< StrX(toCatch.getMessage()) << XERCES_STD_QUALIFIER endl;
 		exit(-1);//return;
-	}
-	SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
-	parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
-	parser->setFeature(XMLUni::fgXercesSchema, doSchema);
-	parser->setFeature(XMLUni::fgXercesHandleMultipleImports, true);
-	parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
-	parser->setFeature(XMLUni::fgXercesIdentityConstraintChecking, identityConstraintChecking);
-	parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
+	};
+	bool                         errorOccurred = false;
+	int x;
+	{ // Everything after XMLPlatformUtils::Initialize(); goes into separate code
+	  // as per https://xml.apache.org/xerces-c-new/faq-parse.html#faq-5 to
+	  // avoid seg fault.
+		const char*                  xmlFile      = 0;
+		SAX2XMLReader::ValSchemes    valScheme    = SAX2XMLReader::Val_Auto;
+		bool                         doNamespaces = true;
+		bool                         doSchema = true;
+		bool                         schemaFullChecking = false;
+		bool                         identityConstraintChecking = true;
+		bool                         doList = false;
+		bool                         namespacePrefixes = false;
 
-	if (valScheme == SAX2XMLReader::Val_Auto){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
-		parser->setFeature(XMLUni::fgXercesDynamic, true);
-	}
-	if (valScheme == SAX2XMLReader::Val_Never){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, false);
-	}
-	if (valScheme == SAX2XMLReader::Val_Always){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
-		parser->setFeature(XMLUni::fgXercesDynamic, false);
-	}
-    SAX2CountHandlers handler = SAX2CountHandlers();
-    parser->setContentHandler(&handler);
-    parser->setErrorHandler(&handler);
-	int run_num = 1; //looptheloop 1000
-	for(int i = 0; i < run_num; i++){
-		parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);
-	}
-	delete parser;
+		//SAX2XMLReader* parser = SAX2XMLReaderImpl::createXMLReader();
+
+		//SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
+
+		SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
+		//const SAX2XMLReaderLoc &parser = SAX2XMLReaderLoc();
+		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
+		parser->setFeature(XMLUni::fgXercesSchema, doSchema);
+		parser->setFeature(XMLUni::fgXercesHandleMultipleImports, true);
+		parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
+		parser->setFeature(XMLUni::fgXercesIdentityConstraintChecking, identityConstraintChecking);
+		parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
+
+		if (valScheme == SAX2XMLReader::Val_Auto){
+			parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+			parser->setFeature(XMLUni::fgXercesDynamic, true);
+		}
+
+		if (valScheme == SAX2XMLReader::Val_Never){
+			parser->setFeature(XMLUni::fgSAX2CoreValidation, false);
+		}
+
+		if (valScheme == SAX2XMLReader::Val_Always){
+			parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+			parser->setFeature(XMLUni::fgXercesDynamic, false);
+		}
+
+		SAX2CountHandlers handler = SAX2CountHandlers();
+		parser->setContentHandler(&handler);
+		parser->setErrorHandler(&handler);
+		int run_num = 1; //looptheloop 1000
+		for(int i = 0; i < run_num; i++){
+			parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);
+		}
+		delete parser;
+
+	} // End of code block that followed XMLPlatformUtils::Initialize()
 
 	//And call the termination method
 	XMLPlatformUtils::Terminate();

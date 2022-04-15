@@ -117,6 +117,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
    SAX2CountHandlers handler = SAX2CountHandlers();
     parser->setContentHandler(&handler);
     parser->setErrorHandler(&handler);
+	//parser->fscanner->getLocator();
 
     unsigned long duration;
     bool                         errorOccurred = false;
