@@ -60,18 +60,18 @@
 
 static spdlog::logger logger = getLog();
 
-
-xercesc_3_2::SAX2XMLReader * XMLReaderFactoryLoc::createXMLReaderLoc(  xercesc_3_2::MemoryManager* const  manager
+/*
+xercesc_3_2::SAX2XMLReaderLoc * XMLReaderFactoryLoc::createXMLReaderLoc(  xercesc_3_2::MemoryManager* const  manager
                                                   , xercesc_3_2::XMLGrammarPool* const gramPool)
 {
     printf("‰s","\n\n\n\nthis one this one\n\n\n\n");
     std::cout<<"how come it doesn't appear?"<<std::endl;
     logger.warn("Can you see me?");
 	//exit(-1);
-    xercesc_3_2::SAX2XMLReaderImplLoc* pImpl=new (manager) xercesc_3_2::SAX2XMLReaderImplLoc(manager, gramPool);
+    xercesc_3_2::SAX2XMLReaderLoc* pImpl=new (manager) xercesc_3_2::SAX2XMLReaderLoc(manager, gramPool);
     return pImpl;
 }
-
+*/
 XERCES_CPP_NAMESPACE_BEGIN
 
 const XMLCh gDTDEntityStr[] =

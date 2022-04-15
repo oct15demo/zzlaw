@@ -21,8 +21,10 @@
 
 //#if !defined(XERCESC_INCLUDE_GUARD_XMLREADERFACTORY_HPP)
 //#define XERCESC_INCLUDE_GUARD_XMLREADERFACTORY_HPP
-
+#define XML_FACTORY
+#ifndef SAX2XML_READER_LOC
 #include "SAX2XMLReaderLoc.hpp"
+#endif
 #include <xercesc/sax/SAXException.hpp>
 
 //XERCES_CPP_NAMESPACE_BEGIN
@@ -40,6 +42,8 @@
   * @see SAX2XMLReader#SAX2XMLReader
   */
 //class SAX2_EXPORT XMLReaderFactory
+
+
 class XMLReaderFactoryLoc
 {
 protected:                // really should be private, but that causes compiler warnings.
@@ -47,10 +51,9 @@ protected:                // really should be private, but that causes compiler 
 	~XMLReaderFactoryLoc() ;
 
 public:
-	static xercesc_3_2::SAX2XMLReader * createXMLReaderLoc(  xercesc_3_2::MemoryManager* const  manager = xercesc_3_2::XMLPlatformUtils::fgMemoryManager
+	static xercesc_3_2::SAX2XMLReaderLoc * createXMLReaderLoc(  xercesc_3_2::MemoryManager* const  manager = xercesc_3_2::XMLPlatformUtils::fgMemoryManager
                                            , xercesc_3_2::XMLGrammarPool* const gramPool = 0
                                           ) ;
-	static xercesc_3_2::SAX2XMLReader * createXMLReaderLoc(const XMLCh* className)  ;
 
 private:
     // -----------------------------------------------------------------------
@@ -58,13 +61,6 @@ private:
     // -----------------------------------------------------------------------
     XMLReaderFactoryLoc(const XMLReaderFactoryLoc&);
     XMLReaderFactoryLoc& operator=(const XMLReaderFactoryLoc&);
-};
-
-inline xercesc_3_2::SAX2XMLReader * XMLReaderFactoryLoc::createXMLReaderLoc(const XMLCh *)
-{	
-	throw xercesc_3_2::SAXNotSupportedException();
-	// unimplemented
-	return 0;
 };
 
 //XERCES_CPP_NAMESPACE_END

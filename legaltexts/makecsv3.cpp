@@ -30,7 +30,11 @@
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
+
+#ifndef XML_FACTORY
 #include "XMLReaderFactory.hpp"
+#endif
+
 #if defined(XERCES_NEW_IOSTREAMS)
 #include <fstream>
 #else
@@ -48,6 +52,11 @@
 #include <locale.h>
 #include <locale>
 #include <clocale>
+
+
+#ifndef XML_FACTORY
+#include "XMLReaderFactory.hpp"
+#endif
 #ifndef SAX2XML_READER_LOC
 #include "SAX2XMLReaderLoc.hpp"
 #endif
