@@ -39,7 +39,9 @@
 #include <xercesc/sax/SAXException.hpp>
 #include <xercesc/internal/XMLScannerResolver.hpp>
 
+#ifndef XML_READER_IMPL_LOC
 #include "SAX2XMLReaderImpl.hpp"
+#endif
 
 #include <xercesc/validators/common/GrammarResolver.hpp>
 #include <xercesc/framework/XMLGrammarPool.hpp>
@@ -140,6 +142,9 @@ SAX2XMLReaderImplLoc::~SAX2XMLReaderImplLoc()
     cleanUp();
 }
 
+XMLScanner* SAX2XMLReaderImplLoc::getScanner(){
+	return fScanner;
+}
 // ---------------------------------------------------------------------------
 //  SAX2XMLReaderImplLoc: Initialize/Cleanup methods
 // ---------------------------------------------------------------------------

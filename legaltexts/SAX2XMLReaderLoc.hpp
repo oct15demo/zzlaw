@@ -10,8 +10,9 @@
 //#endif
 #define XML_READER_LOC
 #define LOGGER_ERROR
-
-#include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
+//Below declares for class SAX2XMLReaderImplLoc vs xercesc for SAX2XMLReaderImpl
+#include "SAX2XMLReaderImpl.hpp"
+//#include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
 #define SAX2XML_READER_LOC
 #include <xercesc/util/PlatformUtils.hpp>
 
@@ -21,13 +22,13 @@ XERCES_CPP_NAMESPACE_BEGIN
 
 
 //class PARSERS_EXPORT SAX2XMLReaderLoc : public SAX2XMLReaderImpl{
-class SAX2XMLReaderLoc : public SAX2XMLReaderImpl{
+class SAX2XMLReaderLoc : public SAX2XMLReaderImplLoc{
 	//: public xercesc_3_2::SAX2XMLReaderImpl {
 
 public:
 
 	SAX2XMLReaderLoc(MemoryManager* const manager,XMLGrammarPool* const gramPool):
-		SAX2XMLReaderImpl(manager,gramPool){}
+		SAX2XMLReaderImplLoc(manager,gramPool){}
 
 virtual ~SAX2XMLReaderLoc();
 
@@ -41,9 +42,6 @@ virtual ~SAX2XMLReaderLoc();
 			XMLGrammarPool* const gramPool = 0
 	);
 */
-	//static  XMLScanner* getScanner();
-	static  char* getScanner();
-
 };
 }
 /* XMLREADERLOC_H_ */

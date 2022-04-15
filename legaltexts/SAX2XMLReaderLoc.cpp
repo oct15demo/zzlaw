@@ -69,7 +69,3 @@ xercesc_3_2::SAX2XMLReaderLoc * XMLReaderFactoryLoc::createXMLReaderLoc(  xerces
 
 }
 
-char* xercesc_3_2::SAX2XMLReaderLoc::getScanner(){
-	return "scanner";
-}
-

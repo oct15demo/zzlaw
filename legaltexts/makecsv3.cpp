@@ -216,8 +216,10 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 
 		//SAX2XMLReader* parser = SAX2XMLReaderImpl::createXMLReader();
 
-		SAX2XMLReader* parser = XMLReaderFactoryLoc::createXMLReaderLoc();
+		SAX2XMLReaderLoc* parser = XMLReaderFactoryLoc::createXMLReaderLoc();
+		XMLScanner* scanner = parser->getScanner();
 
+		const ReaderMgr* loc = scanner->getReaderMgr();
 		//SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
 		//const SAX2XMLReaderLoc &parser = SAX2XMLReaderLoc();
 		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);

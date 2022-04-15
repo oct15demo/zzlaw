@@ -24,6 +24,8 @@
 
 #define LOGGER_ERROR
 
+#define XML_READER_IMPL_LOC
+
 #include <xercesc/parsers/SAXParser.hpp>
 #include <xercesc/sax/Parser.hpp>
 #include <xercesc/framework/XMLBuffer.hpp>
@@ -83,6 +85,8 @@ public :
 	~SAX2XMLReaderImplLoc() ;
    //@}
 
+
+    XMLScanner* getScanner();
     //-----------------------------------------------------------------------
     // Implementation of SAX2XMLReader Interface
     //-----------------------------------------------------------------------
