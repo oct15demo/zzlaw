@@ -22,6 +22,8 @@
 // ---------------------------------------------------------------------------
 //  Includes
 // ---------------------------------------------------------------------------
+#define LOGGER_ERROR
+
 #include "SAX2Count.hpp"
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax/SAXParseException.hpp>

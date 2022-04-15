@@ -30,7 +30,7 @@
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
-#include <xercesc/sax2/XMLReaderFactory.hpp>
+#include "XMLReaderFactory.hpp"
 #if defined(XERCES_NEW_IOSTREAMS)
 #include <fstream>
 #else
@@ -161,7 +161,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	if(fileExists(IE_file)){
 		logger.debug(format("file {} exists", IE_file)); // @suppress("Invalid arguments")
 	}else{
-		logger.error(format("file {} does not exist", IE_file)); // @suppress("Invalid arguments")
+		logger.warn(format("ERROR: file {} does not exist", IE_file)); // @suppress("Invalid arguments")
 		if(EXIT)
 			throw;// @suppress("Invalid arguments")
 	}
@@ -207,9 +207,9 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 
 		//SAX2XMLReader* parser = SAX2XMLReaderImpl::createXMLReader();
 
-		//SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
+		SAX2XMLReader* parser = XMLReaderFactoryLoc::createXMLReaderLoc();
 
-		SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
+		//SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
 		//const SAX2XMLReaderLoc &parser = SAX2XMLReaderLoc();
 		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
 		parser->setFeature(XMLUni::fgXercesSchema, doSchema);
@@ -247,7 +247,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	XMLPlatformUtils::Terminate();
 
 	if (errorOccurred)
-		logger.error("ERROR: error occurred");
+		logger.warn("ERROR: error occurred");
 		//return 4;
 	else
 		logger.info("process without error before getValsYear");
@@ -283,7 +283,7 @@ size_t castOffSize(off_t offsize, const char* source="unnamed source"){
 		logger.debug(format("File size {} = {}", source, castoff)); // @suppress("Invalid arguments")
 	} else {
 		castoff = (size_t)-1; // for printf %jd
-		logger.error(format("Error casting to size_t for {}, (off_t) {}, SIZE_MAX= {}", source, (uintmax_t)offsize, SIZE_MAX )); // @suppress("Invalid arguments")
+		logger.warn(format("ERROR: Failed casting to size_t for {}, (off_t) {}, SIZE_MAX= {}", source, (uintmax_t)offsize, SIZE_MAX )); // @suppress("Invalid arguments")
 		if (EXIT) exit(-1);
 	}
 	return castoff;
@@ -306,7 +306,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 	size_t bytes_read, bytes_expected = castOffSize(file_off_t, filename);
 	int fd;
 	if ((fd = open(filename,O_RDONLY)) < 0){
-		logger.error(format("Error opening file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
+		logger.warn(format("ERROR: Unable to open file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
@@ -318,7 +318,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 
 	if ((dataptr = (unsigned char*)malloc(bytes_expected + len_start + len_end + 1)) == NULL){ // + 1 set to '\0' for safe strtok
 		// printf("%s %zu","data malloc for file ", filename, bytes_expected );
-		logger.error(format("malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
+		logger.warn(format("ERROR: malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
@@ -331,7 +331,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 		addRootElement(root_start, root_end, len_start, len_end, dataptr, bytes_read);
 
 	if (bytes_read != bytes_expected){
-		logger.error(format("Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
+		logger.warn(format("ERROR: Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 

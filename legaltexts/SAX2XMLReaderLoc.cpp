@@ -46,7 +46,7 @@ SAX2XMLReaderLoc::~SAX2XMLReaderLoc() {
 */
 
 
-SAX2XMLReaderLoc * SAX2XMLReaderLoc::createXMLReader(  MemoryManager* const  manager,
+SAX2XMLReaderLoc * SAX2XMLReaderLoc::createXMLReaderLoc(  MemoryManager* const  manager,
 		                             XMLGrammarPool* const gramPool)
 
 

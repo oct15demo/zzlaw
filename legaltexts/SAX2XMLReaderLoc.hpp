@@ -8,6 +8,8 @@
 //#ifndef XMLREADERLOC_H_
 //#define XMLREADERLOC_H_
 //#endif
+#define LOGGER_ERROR
+
 #include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
 #define SAX2XML_READER_LOC
 #include <xercesc/util/PlatformUtils.hpp>
@@ -34,10 +36,12 @@ virtual ~SAX2XMLReaderLoc();
 	//}
 
 
-	static SAX2XMLReaderLoc * createXMLReader(
+	static SAX2XMLReaderLoc * createXMLReaderLoc(
 			MemoryManager* const  manager = XMLPlatformUtils::fgMemoryManager,
 			XMLGrammarPool* const gramPool = 0
 	);
+
+	static  XMLScanner* getScanner();
 
 };
 }
