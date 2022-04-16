@@ -60,6 +60,9 @@
 #ifndef SAX2XML_READER_LOC
 #include "SAX2XMLReaderLoc.hpp"
 #endif
+#ifndef COUNT_HANDLER
+#include "SAX2CountHandlers.hpp"
+#endif
 int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
@@ -217,9 +220,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		//SAX2XMLReader* parser = SAX2XMLReaderImpl::createXMLReader();
 
 		SAX2XMLReaderLoc* parser = XMLReaderFactoryLoc::createXMLReaderLoc();
-		XMLScanner* scanner = parser->getScanner();
 
-		const ReaderMgr* loc = scanner->getReaderMgr();
 		//SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
 		//const SAX2XMLReaderLoc &parser = SAX2XMLReaderLoc();
 		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
@@ -246,6 +247,11 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		SAX2CountHandlers handler = SAX2CountHandlers();
 		parser->setContentHandler(&handler);
 		parser->setErrorHandler(&handler);
+		XMLScanner* scanner = parser->getScanner();
+
+		const ReaderMgr* locator = scanner->getReaderMgr();
+		handler.setLocator(locator);
+		handler.setParser(parser);
 		int run_num = 1; //looptheloop 1000
 		for(int i = 0; i < run_num; i++){
 			parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);

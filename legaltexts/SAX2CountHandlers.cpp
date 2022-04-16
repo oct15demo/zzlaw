@@ -71,6 +71,8 @@ SAX2CountHandlers::SAX2CountHandlers() :
 	, fSawErrors(false)
 	, mp_attributes(0)
 
+	, flocator(0)
+
 
 {
 	current_line = 0; //int
@@ -100,6 +102,10 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	char* line_int = tr(line_num); //or XMLString::parseInt
     	std::cout<<line_int<<std::endl;
     	logger.warn(format("line number in attr: {}",line_int)); // @suppress("Invalid arguments")
+    	//logger.info(format("line from locator: {}", locator->getLineNumber()));// @suppress("Invalid arguments")
+
+    	logger.warn(format("parser in handler: {}",fparser ->getScanner()->getReaderMgr()->getLineNumber())); //->getScanner();//->getLocator();//->getLineNumber();
+
     }
 
     if (XMLString::compareString(localname, tr("citation")) == 0 ){
@@ -134,6 +140,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     //XMLString::release(&el_localname);
 }
 
+xercesc::SAX2XMLReaderLoc* SAX2CountHandlers::fparser = NULL;
 
 void SAX2CountHandlers::characters(  const   XMLCh* const chars
 								    , const XMLSize_t length) {

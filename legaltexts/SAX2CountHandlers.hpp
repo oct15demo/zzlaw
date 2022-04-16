@@ -27,8 +27,14 @@
 #include <unordered_map>
 #include <vector>
 
+#define COUNT_HANDLER
+
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
+#include <xercesc/internal/ReaderMgr.hpp>
+#ifndef SAX2XML_READER_LOC
+#include "SAX2XMLReaderLoc.hpp"
+#endif
 //typedef basic_string<char, char_traits<char>, allocator<char> > string;
 
 XERCES_CPP_NAMESPACE_USE
@@ -48,6 +54,9 @@ public:
 	char* latest_date; //
 	const Attributes* mp_attributes;
 	std::unordered_map<const XMLCh*, void*>citations;
+	const xercesc::ReaderMgr* flocator;
+
+	static xercesc::SAX2XMLReaderLoc* fparser;
 
     // -----------------------------------------------------------------------
     //  Constructors and Destructor
@@ -55,6 +64,16 @@ public:
     SAX2CountHandlers();
     ~SAX2CountHandlers();
 
+
+    void setLocator(const ReaderMgr* locator){
+
+    	this->flocator = locator;
+    }
+
+    void setParser(SAX2XMLReaderLoc* parser){
+
+    	fparser = parser;
+    }
 
     // -----------------------------------------------------------------------
     //  Getter methods
