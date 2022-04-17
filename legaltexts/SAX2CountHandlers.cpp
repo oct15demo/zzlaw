@@ -102,9 +102,9 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	char* line_int = tr(line_num); //or XMLString::parseInt
     	std::cout<<line_int<<std::endl;
     	logger.warn(format("line number in attr: {}",line_int)); // @suppress("Invalid arguments")
-    	//logger.info(format("line from locator: {}", locator->getLineNumber()));// @suppress("Invalid arguments")
+    	logger.warn(format("line from locator: {}", flocator->getLineNumber()));// @suppress("Invalid arguments")
 
-    	logger.warn(format("parser in handler: {}",fparser ->getScanner()->getReaderMgr()->getLineNumber())); //->getScanner();//->getLocator();//->getLineNumber();
+    	//logger.warn(format("parser in handler: {}",fparser ->getScanner()->getReaderMgr()->getLineNumber())); //->getScanner();//->getLocator();//->getLineNumber();
 
     }
 

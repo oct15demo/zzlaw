@@ -32,7 +32,7 @@
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 
 #ifndef XML_FACTORY
-#include "XMLReaderFactory.hpp"
+#include <xercesc/sax2/XMLReaderFactory.hpp>
 #endif
 
 #if defined(XERCES_NEW_IOSTREAMS)
@@ -55,10 +55,10 @@
 
 
 #ifndef XML_FACTORY
-#include "XMLReaderFactory.hpp"
+//#include "XMLReaderFactory.hpp"
 #endif
 #ifndef SAX2XML_READER_LOC
-#include "SAX2XMLReaderLoc.hpp"
+//#include "SAX2XMLReaderLoc.hpp"
 #endif
 #ifndef COUNT_HANDLER
 #include "SAX2CountHandlers.hpp"
@@ -219,7 +219,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 
 		//SAX2XMLReader* parser = SAX2XMLReaderImpl::createXMLReader();
 
-		SAX2XMLReaderLoc* parser = XMLReaderFactoryLoc::createXMLReaderLoc();
+		SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
 
 		//SAX2XMLReaderLoc* parser = SAX2XMLReaderLoc::createXMLReader();
 		//const SAX2XMLReaderLoc &parser = SAX2XMLReaderLoc();
@@ -247,11 +247,11 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		SAX2CountHandlers handler = SAX2CountHandlers();
 		parser->setContentHandler(&handler);
 		parser->setErrorHandler(&handler);
-		XMLScanner* scanner = parser->getScanner();
+		//XMLScanner* scanner = parser->getScanner();
 
-		const ReaderMgr* locator = scanner->getReaderMgr();
-		handler.setLocator(locator);
-		handler.setParser(parser);
+		//const ReaderMgr* locator = scanner->getReaderMgr();
+		//handler.setLocator(locator);
+		//handler.setParser(parser);
 		int run_num = 1; //looptheloop 1000
 		for(int i = 0; i < run_num; i++){
 			parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);

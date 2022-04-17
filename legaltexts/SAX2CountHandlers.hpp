@@ -54,7 +54,8 @@ public:
 	char* latest_date; //
 	const Attributes* mp_attributes;
 	std::unordered_map<const XMLCh*, void*>citations;
-	const xercesc::ReaderMgr* flocator;
+	//const xercesc::ReaderMgr* flocator;
+	const xercesc::Locator* flocator;
 
 	static xercesc::SAX2XMLReaderLoc* fparser;
 
@@ -64,6 +65,9 @@ public:
     SAX2CountHandlers();
     ~SAX2CountHandlers();
 
+    void setDocumentLocator(const Locator* deflocator){
+    	this->flocator = deflocator;
+    }
 
     void setLocator(const ReaderMgr* locator){
 
