@@ -31,6 +31,7 @@ fill_in_c = makecsv3c.fillInDataFromIEOutfile
 fill_in_c.restype =valArrayYear
 fill_in_c.argtypes = [c_char_p, POINTER(Entry), c_int, c_char_p]
 
+
 #IE_file = b'scotus/100000.case10'
 IE_file = b'noroot.case10'
 #IE_file = b'/Users/charles/root_100000.case10' 

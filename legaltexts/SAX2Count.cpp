@@ -114,9 +114,9 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
     //  Create our SAX handler object and install it on the parser, as the
     //  document and error handler.
 
-   SAX2CountHandlers handler = SAX2CountHandlers();
-    parser->setContentHandler(&handler);
-    parser->setErrorHandler(&handler);
+	//SAX2CountHandlers handler = SAX2CountHandlers();
+    //parser->setContentHandler(&handler);
+    //parser->setErrorHandler(&handler);
 	//parser->fscanner->getLocator();
 
     unsigned long duration;
@@ -150,7 +150,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
 	// Print out the stats that we collected and time taken
     //SAX2CountHandlers* handler = (SAX2CountHandlers*)parser->getContentHandler();
 
-    SAX2CountHandlers* handlergot = (SAX2CountHandlers*)parser->getContentHandler();
+    /*SAX2CountHandlers* handlergot = (SAX2CountHandlers*)parser->getContentHandler();
 	if (!handlergot->getSawErrors()) {
 
 		XERCES_STD_QUALIFIER cout << XMLString::transcode(xmlBuf.getSystemId()) << ": " //<< duration << " ms ("
@@ -161,7 +161,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
 
 	} else {
 		errorOccurred = true;
-	}
+	}*/
 
 
     /*delete parser;

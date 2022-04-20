@@ -23,11 +23,14 @@
 // ---------------------------------------------------------------------------
 //  Includes
 // ---------------------------------------------------------------------------
+//TODO: Consolidate #includes
+
 #include <string.h>
 #include <unordered_map>
+#include <set>
 #include <vector>
 
-#define COUNT_HANDLER
+#define COUNT_HANDLER_H
 
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
@@ -39,25 +42,34 @@
 
 XERCES_CPP_NAMESPACE_USE
 
+auto cmpx = [](const XMLCh* a, const XMLCh* b) {
+	int x = strcmp(XMLString::transcode(a),XMLString::transcode(b));
+	if(x<0)return true;
+	return false;
+};
+
 class SAX2CountHandlers : public DefaultHandler
 {
 public:
 
-	char* first_citation; //
-	std::vector<std::string> first_X_v_Y;
-	std::vector<std::string>first_case_citation_other;
-	std::vector<std::string>first_standard_cases;
-	std::vector<int>citation_line_numbers;
-	char* first_equiv_relations_type; //
-	int current_line;
-	std::unordered_map<std::string, std::string>local_dict;
-	char* latest_date; //
-	const Attributes* mp_attributes;
-	std::unordered_map<const XMLCh*, void*>citations;
-	//const xercesc::ReaderMgr* flocator;
-	const xercesc::Locator* flocator;
+	char*                    first_citation; //
+	std::vector<XMLCh*>      first_X_v_Ys;
+	std::vector<std::string> first_case_citations_other;
+	std::vector<std::string> first_standard_cases;
+	char*                    first_equiv_relations_type; //
+	int                      current_line;
+	const XMLCh*             latest_date; //
+	const Attributes*        mp_attributes;
+	const xercesc::Locator*  flocator;
 
-	static xercesc::SAX2XMLReaderLoc* fparser;
+	std::unordered_map<const XMLCh*, void*>  citations;
+	std::unordered_map<const XMLCh*, void*>  local_dict;
+
+	static std::set<int>                     citation_line_numbers;
+	static std::set<const XMLCh*, decltype(cmpx)> entry_types;
+	static SAX2XMLReaderLoc*        fparser;
+
+	//const xercesc::ReaderMgr* flocator;
 
     // -----------------------------------------------------------------------
     //  Constructors and Destructor

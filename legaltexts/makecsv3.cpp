@@ -60,13 +60,16 @@
 #ifndef SAX2XML_READER_LOC
 //#include "SAX2XMLReaderLoc.hpp"
 #endif
-#ifndef COUNT_HANDLER
-#include "SAX2CountHandlers.hpp"
+#ifndef COUNT_HANDLER_H
+//#include "SAX2CountHandlers.hpp"
 #endif
+
+
 int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
-#define LOGGER_ERROR
+//#define LOGGER_ERROR
+#define LOGGER_ERROR_INCLUDE
 #include "logging.h"
 
 static spdlog::logger logger = getLog();
@@ -78,7 +81,6 @@ static spdlog::logger logger = getLog();
 		throw;
 	return -1;
 } */
-bool EXIT=0;
 
 // ([{'id1': '100000', 'folder': 'scotus', 'full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES', 'standard_reporter': 'U.S.', 'volume': '259', 'page_number': '188', 'year': '1922'}], '1922')
 /*
@@ -173,7 +175,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	if(fileExists(IE_file)){
 		logger.debug(format("file {} exists", IE_file)); // @suppress("Invalid arguments")
 	}else{
-		logger.warn(format("ERROR: file {} does not exist", IE_file)); // @suppress("Invalid arguments")
+		logger.error(format("ERROR: file {} does not exist", IE_file)); // @suppress("Invalid arguments")
 		if(EXIT)
 			throw;// @suppress("Invalid arguments")
 	}
@@ -264,10 +266,10 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	XMLPlatformUtils::Terminate();
 
 	if (errorOccurred)
-		logger.warn("ERROR: error occurred");
+		logger.error("ERROR: error occurred");
 		//return 4;
 	else
-		logger.info("process without error before getValsYear");
+		logger.info("process without xerces errorOccurred error before getValsYear");
 		//return 0;
 
 	return getValsYear();
@@ -323,7 +325,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 	size_t bytes_read, bytes_expected = castOffSize(file_off_t, filename);
 	int fd;
 	if ((fd = open(filename,O_RDONLY)) < 0){
-		logger.warn(format("ERROR: Unable to open file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
+		logger.error(format("ERROR: Unable to open file {} fd {}; {} {}", filename, fd, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
@@ -335,7 +337,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 
 	if ((dataptr = (unsigned char*)malloc(bytes_expected + len_start + len_end + 1)) == NULL){ // + 1 set to '\0' for safe strtok
 		// printf("%s %zu","data malloc for file ", filename, bytes_expected );
-		logger.warn(format("ERROR: malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
+		logger.error(format("ERROR: malloc file {} size_t {}; {} {}", filename, bytes_expected, errno, strerror(errno))); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
@@ -348,7 +350,7 @@ FileInput* readFile(char* filename, FileIn* fileIn, bool addRoot){
 		addRootElement(root_start, root_end, len_start, len_end, dataptr, bytes_read);
 
 	if (bytes_read != bytes_expected){
-		logger.warn(format("ERROR: Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
+		logger.error(format("ERROR: Reading file {} bytes_read {} bytes_expected {}", filename, bytes_read, bytes_expected)); // @suppress("Invalid arguments")
 		if (EXIT) exit(EXIT_FAILURE);
 	}
 
@@ -375,6 +377,6 @@ void addRootElement(const char* root_start, const char* root_end, int len_start,
 
 	strncpy((char*)dataptr, root_start, len_start);
 	strcpy((char*)dataptr+bytes_read + len_start, root_end);
-	printf("file read and rooted:\n%s\n", (char*)dataptr);
+	logger.debug(format("file read and rooted:\n{}\n", (char*)dataptr)); // @suppress("Invalid arguments")
 
 }

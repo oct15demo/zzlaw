@@ -1,5 +1,14 @@
+// define EXIT_FILE to override setting, for use of
+// if(EXIT)exit(EXIT_FAILURE);
+#ifndef EXIT_FILE
+#define EXIT true==false
+#endif
+
 #ifndef ZZOFLAW_H_
 #define ZZOFLAW_H_
+
+// if(EXIT)exit(EXIT_FAILURE); - Interrupt program by exiting due to preceding error.
+// Could even be added to logging.error macro
 
 
 #ifndef strtok_r
