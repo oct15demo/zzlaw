@@ -49,16 +49,28 @@
 #define tr XMLString::transcode
 #define LOGGER_ERROR_INCLUDE // unnecessary after removing unused ReaderImpl and ReaderLoc files
 //#define LOGGER_ERROR // don't use log level error since macro conflicts with handlers error method
-#ifndef LOGGING_LEVEL_LINER
-#include "logging.h"
+
+
+#ifndef LOGGING_LEVEL_LINER //in the logging.h to avoid duplicate
+ #include "logging.h"
 #endif
 
+
 static spdlog::logger logger = getLog();
+
+#include<algorithm>
+
+//https://stackoverflow.com/questions/571394/how-to-find-out-if-an-item-is-present-in-a-stdvector
+/*template <class T>
+bool find(vector<T*> vector_x, const T* item_x){
+	return std::find(vector_x.begin(), vector_x.end(), item_x) != vector_x.end();
+}*/
 
 
 //static members only
 char* entry_type_chptrs[] = { {"case_X_vs_Y"}, {"case_citation_other"}, {"standard_case"}};
-std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
+//std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
+std::set<const XMLCh*> SAX2CountHandlers::entry_types;
 std::set<int> SAX2CountHandlers::citation_line_numbers;
 // ---------------------------------------------------------------------------
 //  SAX2CountHandlers: Constructors and Destructor
@@ -122,13 +134,14 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     	current_line = line_number;
     } else{
-    	char* filename = tr(flocator->getSystemId());
+    	//char* filename = tr(flocator->getSystemId());
     	logger.error(format("No line number in attr, actual line number {},line_number, file‘{}", // @suppress("Invalid arguments")
     	        	    			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
 
         	//logger.warn(format("No line number in attr, actual line number {}, file {}",line_number, // @suppress("Invalid arguments")
         	  //  			    				(unsigned int)flocator->getLineNumber(), tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     }
+
 
     if (XMLString::compareString(localname, tr("citation")) == 0 ){
     	mp_attributes = &attrs;
@@ -142,68 +155,114 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         	if(EXIT)exit(EXIT_FAILURE);
         }else{
         	logger.debug(format("entry_type in citation {}: {}", id, tr(entry_type_x))); // @suppress("Invalid arguments")
-        }
+        }// close entry_type NULL
 
         // <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
         //logic: What is purpose of first XvY, other, no line? no check of standard?
         if( current_line < 10 && entry_types.count(entry_type_x)!=0 &&
         		((first_X_v_Ys.empty() && first_case_citations_other.empty()) || current_line==0)){
-        	logger.debug("< line 10, XvY,std,other, (1st XvY,other empty or line 0");
+        	logger.debug("< line 10, XvY,std,other, (1st XvY,other empty or line 0)");
         	local_dict[id_x]= (void*)mp_attributes;
         	logger.debug(format("Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
+
+        }
+    }
+}
+        	/*
         	if(citation_line_numbers.count(line_number)==0){
         		citation_line_numbers.insert(line_number);
         		//logger.debug(format("line_number {} added to citation_line_numbers",line_number)); // @suppress("Invalid arguments")
         	}else{
         		//not necessarily an error, but log that way to find if ever occurs
         		logger.error(format("Can line_number appear twice? File {} line {}, actual {}",tr(flocator->getSystemId()),line_number, flocator->getLineNumber())); // @suppress("Invalid arguments")
-        	}
+        	} // close Line_number 0
         	if(XMLString::compareString(entry_type_x,tr("case_X_vs_Y")) == 0){
         		first_X_v_Ys.push_back((XMLCh*)id_x);
         		logger.debug(format("Append to first XvYs {} ",id));// @suppress("Invalid arguments")
-            	const XMLCh* year = attrs.getValue(tr("year"));
-            	if(year != NULL){
-            		logger.debug(format("latest_year {}",tr(year)));// @suppress("Invalid arguments")
-            		latest_date = year;
+            	const XMLCh* year_x = attrs.getValue(tr("year"));
+            	if(year_x != NULL){
+            		logger.debug(format("latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
+            		latest_date = year_x;
             	} else {
-            		logger.error(format("No year for citation {}",id)); // @suppress("Invalid arguments")
-            	}
-        	}
+            		logger.error(format("No year for XvY citation {}",id)); // @suppress("Invalid arguments")
+            	}// close year not NULL
+        	}else if(XMLString::compareString(entry_type_x,tr("case_citation_other")) == 0){
+        		first_case_citations_other.push_back((XMLCh*)id_x);
+        		logger.debug(format("Append to first case citations others {} ",id));// @suppress("Invalid arguments")
+            	const XMLCh* year_x = attrs.getValue(tr("year"));
+            	if(year_x != NULL){
+            		logger.debug(format("latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
+            		latest_date = year_x;
+            	} else {
+            		logger.error(format("No year for 'other' citation {}",id)); // @suppress("Invalid arguments")
+            	}// close year not NULL
+        	}// close entry_type XvY or other
+
         } else {
-        	logger.debug(format("{}",entry_types.size())); // @suppress("Invalid arguments")
-        	//entry_types.insert(entry_type_x);
-        	set<const XMLCh *,less<const XMLCh *>,allocator<const XMLCh *>>::iterator iter = entry_types.begin();
-        	//logger.debug(format("{}",(const XMLCh*)*iter)); // @suppress("Invalid arguments")
-        	std::cout<<tr(*iter++)<<std::endl;
-        	std::cout<<tr(*iter++)<<std::endl;
-        	std::cout<<tr(*iter)<<std::endl;
-        	logger.debug(format("\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", // @suppress("Invalid arguments")
-        	        current_line < 10,
-					entry_types.count((const XMLCh*)entry_type_x),
+
+        	logger.debug(format( // @suppress("Invalid arguments")
+        			"\n   current_line: {} not i<10\n"
+        			"OR entry_type {} not XvY,standard,other,\n"
+        			"OR ( current line NOT 0 (line = {}"
+        			"AND  1st Xvy   NOT empty (empty = {})\n"
+        			"or 1st other NOT empty (empty = {})\n"
+        			")",//{}\n{}\n{}\n{}\n{}",
 					tr(entry_type_x),
-					entry_types.count((const XMLCh*)(tr("standard_case"))),
-					entry_types.count(tr("standard_case")),
 					first_X_v_Ys.empty(),
 					first_case_citations_other.empty(),
 			        current_line
         	        ));
-        }
+        } // close <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
+    } else if ( ( //close of is citation
+    	//already found first XvY or other, line number; element is RELATION
+    	!first_X_v_Ys.empty() || !first_case_citations_other.empty()) &&
+    	XMLString::compareString(localname, tr("RELATION")) == 0 &&
+		!citation_line_numbers.empty() ){
 
-        	//const XSDLocator &loc = XSDLocator();
-        	//const Locator* locator = this->getScanner()->getLocator();
-        	/*loc.setValues(const XMLCh* const systemId,
-        	              const XMLCh* const publicId,
-        	              const XMLFileLoc lineNo,
-        				  const XMLFileLoc columnNo);
+    	mp_attributes = &attrs;
+    	//standard case, and already seen XvY or other
+    	if ( attrs.getValue(tr("standard_case")) != NULL &&
+    		(  (!attrs.getValue(tr("X_vs_Y")) != NULL &&
+			   find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y"))) == true)
+    			||
+			   (!attrs.getValue(tr("case_citation_other")) != NULL &&
+				find(first_case_citations_other,attrs.getValue(tr("case_citation_other"))) == true)
+			)) {
+    		if(first_equiv_relations_type == NULL){
+    			logger.debug("first_equiv_relations_type=NULL");
+    			logger.debug(first_equiv_relations_type);
+    			if(XMLString::compareString(attrs.getValue(tr("gram_type")),tr("multi_line"))){
+    				first_equiv_relations_type = "multi_line";
+    			}else{
+    				first_equiv_relations_type = "multi_line";
+    			}
 
-        	const XMLCh* shit = tr("shit");
-        	const SAXParseException e = SAXParseException(shit,loc);
-        	this->error(e);*/
+    		}
 
-
-        }
+    	}
+    	//const XMLCh* id_x = attrs.getValue(tr("id"));
+    	//citations[id_x]= (void*)mp_attributes;)
 
     }
+
+}
+
+*/
+//logger.debug(format("{}",entry_types.size())); // @suppress("Invalid arguments")
+//set<const XMLCh *,less<const XMLCh *>,allocator<const XMLCh *>>::iterator iter = entry_types.begin();
+/*std::cout<<tr(*iter++)<<std::endl;
+std::cout<<tr(*iter++)<<std::endl;
+std::cout<<tr(*iter)<<std::endl;*/
+//const XSDLocator &loc = XSDLocator();
+//const Locator* locator = this->getScanner()->getLocator();
+/*loc.setValues(const XMLCh* const systemId,
+              const XMLCh* const publicId,
+              const XMLFileLoc lineNo,
+			  const XMLFileLoc columnNo);
+
+const XMLCh* shit = tr("shit");
+const SAXParseException e = SAXParseException(shit,loc);
+this->error(e);*/
 
 
 
