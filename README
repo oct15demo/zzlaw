@@ -1,3 +1,7 @@
+<h3>
+broken_line is now the only active branch, use only that branch
+</h3>
+
 aout.py is the main entry point. runs on python 3.6 or better (I hope).
 a.out is the C binary, but you mostly likely have to rebuild it, was compiled on a mac. buildscript.sh provided for your convenience.
 a.out will also run by itself.
