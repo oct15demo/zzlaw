@@ -3,15 +3,21 @@
 #define debug(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::debug, __VA_ARGS__)
 #define info(...)  log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::info, __VA_ARGS__)
 #define warn(...)  log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::warn, __VA_ARGS__)
-#ifndef LOGGER_ERROR //define in .cpp to avoid conflict with  error function, eg src/framework/XMLErrorReporter function 'error'
-	#define error(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::err, __VA_ARGS__)
+ //define in .cpp to avoid conflict with  error function, eg src/framework/XMLErrorReporter function 'error'
+	//#define error(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::err, __VA_ARGS__)
 //#else // alternative where different error function in modified code implements base class in lib
 //	#define Error(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::err, __VA_ARGS__)
+
+
+//#ifdef LOGGER_ERROR_INCLUDE
+#ifndef LOGGER_ERROR
+#define error(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::err, __VA_ARGS__)
 #endif
 
 #ifdef LOGGER_ERROR_INCLUDE
 #define error(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::err, __VA_ARGS__)
 #endif
+//#endif
 
 #define critical(...) log(spdlog::source_loc{__FILE__, __LINE__, static_cast<const char *>(__FUNCTION__)}, spdlog::level::critical, __VA_ARGS__)
 

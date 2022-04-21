@@ -47,7 +47,7 @@
 
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser){
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser){
 
 
 //int parseThat(){
@@ -168,10 +168,10 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLRea
 
 	//And call the termination method
 	XMLPlatformUtils::Terminate();
-
+*/
 	if (errorOccurred)
 		return 4;
 	else
 		return 0;
-	*/
+
 }

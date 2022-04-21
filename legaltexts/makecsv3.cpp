@@ -65,7 +65,7 @@
 #endif
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, char* filename, SAX2XMLReader* parser);
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
 //#define LOGGER_ERROR
@@ -255,8 +255,8 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		//handler.setLocator(locator);
 		//handler.setParser(parser);
 		int run_num = 1; //looptheloop 1000
-		for(int i = 0; i < run_num; i++){
-			parseBuf(fileIn->fileptr, fileIn->size, "lenomdeficheavec_éàçôï", parser);// fileIn->filename);
+		for(int i = 0; i < run_num; i++){ //"lenomdeficheavec_éàçôï" test filename
+			parseBuf(fileIn->fileptr, fileIn->size, fileIn->filename, parser);// fileIn->filename); // @suppress("Invalid arguments")
 		}
 		delete parser;
 
