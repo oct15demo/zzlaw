@@ -269,7 +269,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		logger.error("ERROR: error occurred");
 		//return 4;
 	else
-		logger.info("process without xerces 'errorOccurred' error before getValsYear");
+		logger.info("Success, processed without xerces 'errorOccurred' before calling getValsYear");
 		//return 0;
 
 	return getValsYear();

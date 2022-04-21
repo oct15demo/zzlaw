@@ -61,16 +61,16 @@ static spdlog::logger logger = getLog();
 #include<algorithm>
 
 //https://stackoverflow.com/questions/571394/how-to-find-out-if-an-item-is-present-in-a-stdvector
-/*template <class T>
+template <class T>
 bool find(vector<T*> vector_x, const T* item_x){
 	return std::find(vector_x.begin(), vector_x.end(), item_x) != vector_x.end();
-}*/
+}
 
 
 //static members only
 char* entry_type_chptrs[] = { {"case_X_vs_Y"}, {"case_citation_other"}, {"standard_case"}};
-//std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
-std::set<const XMLCh*> SAX2CountHandlers::entry_types;
+std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
+//std::set<const XMLCh*> SAX2CountHandlers::entry_types;
 std::set<int> SAX2CountHandlers::citation_line_numbers;
 // ---------------------------------------------------------------------------
 //  SAX2CountHandlers: Constructors and Destructor
@@ -133,15 +133,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	logger.debug(format("current line number in attr: {}, actual line number {}, file {}",line_number, // @suppress("Invalid arguments")
     			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     	current_line = line_number;
-    } else{
-    	//char* filename = tr(flocator->getSystemId());
-    	logger.error(format("No line number in attr, actual line number {},line_number, file‘{}", // @suppress("Invalid arguments")
-    	        	    			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
-
-        	//logger.warn(format("No line number in attr, actual line number {}, file {}",line_number, // @suppress("Invalid arguments")
-        	  //  			    				(unsigned int)flocator->getLineNumber(), tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     }
-
 
     if (XMLString::compareString(localname, tr("citation")) == 0 ){
     	mp_attributes = &attrs;
@@ -165,10 +157,6 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         	local_dict[id_x]= (void*)mp_attributes;
         	logger.debug(format("Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
 
-        }
-    }
-}
-        	/*
         	if(citation_line_numbers.count(line_number)==0){
         		citation_line_numbers.insert(line_number);
         		//logger.debug(format("line_number {} added to citation_line_numbers",line_number)); // @suppress("Invalid arguments")
@@ -198,29 +186,33 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
             	}// close year not NULL
         	}// close entry_type XvY or other
 
-        } else {
+        }else {
 
         	logger.debug(format( // @suppress("Invalid arguments")
-        			"\n   current_line: {} not i<10\n"
+        			"\ncurrent_line: {} not <10\n"
         			"OR entry_type {} not XvY,standard,other,\n"
-        			"OR ( current line NOT 0 (line = {}"
-        			"AND  1st Xvy   NOT empty (empty = {})\n"
-        			"or 1st other NOT empty (empty = {})\n"
+        			"OR ( current line NOT 0 (line = {})\n"
+        			"     AND  ( 1st XvY NOT empty (empty = {})\n"
+        			"            or 1st other NOT empty (empty = {})\n"
+        			"          )\n"
+        			"   )\n"
         			")",//{}\n{}\n{}\n{}\n{}",
+			        current_line,
 					tr(entry_type_x),
+			        current_line,
 					first_X_v_Ys.empty(),
-					first_case_citations_other.empty(),
-			        current_line
+					first_case_citations_other.empty()
         	        ));
         } // close <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
     } else if ( ( //close of is citation
-    	//already found first XvY or other, line number; element is RELATION
+    	//below means already found first XvY or other, line number; element is RELATION
     	!first_X_v_Ys.empty() || !first_case_citations_other.empty()) &&
     	XMLString::compareString(localname, tr("RELATION")) == 0 &&
 		!citation_line_numbers.empty() ){
 
     	mp_attributes = &attrs;
     	//standard case, and already seen XvY or other
+    	logger.debug("checking RELATION");
     	if ( attrs.getValue(tr("standard_case")) != NULL &&
     		(  (!attrs.getValue(tr("X_vs_Y")) != NULL &&
 			   find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y"))) == true)
@@ -238,7 +230,6 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     			}
 
     		}
-
     	}
     	//const XMLCh* id_x = attrs.getValue(tr("id"));
     	//citations[id_x]= (void*)mp_attributes;)
@@ -247,7 +238,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 
 }
 
-*/
+
 //logger.debug(format("{}",entry_types.size())); // @suppress("Invalid arguments")
 //set<const XMLCh *,less<const XMLCh *>,allocator<const XMLCh *>>::iterator iter = entry_types.begin();
 /*std::cout<<tr(*iter++)<<std::endl;

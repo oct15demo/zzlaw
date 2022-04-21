@@ -42,13 +42,13 @@
 
 
 XERCES_CPP_NAMESPACE_USE
-/*
+
 auto cmpx = [](const XMLCh* a, const XMLCh* b) {
 	int x = strcmp(XMLString::transcode(a),XMLString::transcode(b));
 	if(x<0)return true;
 	return false;
 };
-*/
+
 class SAX2CountHandlers : public DefaultHandler
 {
 public:
@@ -67,8 +67,8 @@ public:
 	std::unordered_map<const XMLCh*, void*>  local_dict;
 
 	static std::set<int>                     citation_line_numbers;
-	//static std::set<const XMLCh*, decltype(cmpx)> entry_types;
-	static std::set<const XMLCh*> entry_types;
+	static std::set<const XMLCh*, decltype(cmpx)> entry_types;
+	//static std::set<const XMLCh*> entry_types;
 	static SAX2XMLReaderLoc*        fparser;
 
 	//const xercesc::ReaderMgr* flocator;
