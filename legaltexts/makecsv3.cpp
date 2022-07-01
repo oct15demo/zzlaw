@@ -272,6 +272,9 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		logger.info("Success, processed without xerces 'errorOccurred' before calling getValsYear");
 		//return 0;
 
+	logger.debug("Note: in 'else' logging, conditions are OR'd (unless otherwise noted) in which case any 'true' listed is a reason for 'else'");
+	logger.debug("Also in 'else', states inside parenthesis e.g. (NOT RELATION or Citation) are merely the else tests, when not inside (), log shows actual states");
+	logger.debug("\"*****\" used to separate log output of each data line, if ln # given, subtract 1 when looking at data file if <root> node added by program (hardcoded presently because all case10 files missing, else xerces parse fails))");
 	return getValsYear();
 
 }

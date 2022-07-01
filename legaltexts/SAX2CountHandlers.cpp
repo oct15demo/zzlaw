@@ -94,7 +94,8 @@ SAX2CountHandlers::SAX2CountHandlers() :
 	, fSawErrors(false)
 	, mp_attributes(0)
 	, flocator(0)
-
+	, theme(NULL)
+	, includes_docket_string(NULL)
 
 {
 	current_line = 0; //int
@@ -128,6 +129,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     char* el_localname = XMLString::transcode(localname);
     int line_number;
     const XMLCh* line_num_x;
+    logger.debug("*****                                                                                                     "); //spacer between lines read
     if ((line_num_x = attrs.getValue(tr("line"))) != NULL){
     	line_number = atoi(tr(line_num_x)); //or XMLString::parseInt
     	logger.debug(format("current line number in attr: {}, actual line number {}, file {}",line_number, // @suppress("Invalid arguments")
@@ -139,7 +141,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	mp_attributes = &attrs;
     	const XMLCh* id_x = attrs.getValue(tr("id"));
     	citations[id_x]= (void*)mp_attributes;
-    	//logger.debug(format("Attributes added to citation map with id {}", tr(id_x))); // @suppress("Invalid arguments")
+    	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
     	char* id = tr(id_x);
     	const XMLCh* entry_type_x = attrs.getValue(tr("entry_type"));
         if (entry_type_x == NULL){
@@ -152,91 +154,135 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         // <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
         //logic: What is purpose of first XvY, other, no line? no check of standard?
         if( current_line < 10 && entry_types.count(entry_type_x)!=0 &&
-        		((first_X_v_Ys.empty() && first_case_citations_other.empty()) || current_line==0)){
-        	logger.debug("< line 10, XvY,std,other, (1st XvY,other empty or line 0)");
+        		((first_X_v_Ys.empty() && first_case_citations_other.empty()) || current_line==0))
+        {
+        	if(current_line == 0)logger.error("current_line == 0");
+        	logger.debug("  < line 10, XvY,std,other, (1st XvY,other empty or line 0)");
         	local_dict[id_x]= (void*)mp_attributes;
-        	logger.debug(format("Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
+        	logger.debug(format("  Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
 
         	if(citation_line_numbers.count(line_number)==0){
         		citation_line_numbers.insert(line_number);
         		//logger.debug(format("line_number {} added to citation_line_numbers",line_number)); // @suppress("Invalid arguments")
         	}else{
         		//not necessarily an error, but log that way to find if ever occurs
-        		logger.error(format("Can line_number appear twice? File {} line {}, actual {}",tr(flocator->getSystemId()),line_number, flocator->getLineNumber())); // @suppress("Invalid arguments")
+        		logger.error(format("   Can line_number appear twice? File {} line {}, actual {}",tr(flocator->getSystemId()),line_number, flocator->getLineNumber())); // @suppress("Invalid arguments")
         	} // close Line_number 0
         	if(XMLString::compareString(entry_type_x,tr("case_X_vs_Y")) == 0){
         		first_X_v_Ys.push_back((XMLCh*)id_x);
-        		logger.debug(format("Append to first XvYs {} ",id));// @suppress("Invalid arguments")
+        		logger.debug(format("    Append to first XvYs {} ",id));// @suppress("Invalid arguments")
             	const XMLCh* year_x = attrs.getValue(tr("year"));
             	if(year_x != NULL){
-            		logger.debug(format("latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
+            		logger.debug(format("         latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
             		latest_date = year_x;
             	} else {
-            		logger.error(format("No year for XvY citation {}",id)); // @suppress("Invalid arguments")
+            		logger.error(format("         No year for XvY citation {}",id)); // @suppress("Invalid arguments")
             	}// close year not NULL
-        	}else if(XMLString::compareString(entry_type_x,tr("case_citation_other")) == 0){
+        	} else if(XMLString::compareString(entry_type_x,tr("case_citation_other")) == 0){
         		first_case_citations_other.push_back((XMLCh*)id_x);
-        		logger.debug(format("Append to first case citations others {} ",id));// @suppress("Invalid arguments")
+        		logger.debug(format("      Append to first case citations others {} ",id));// @suppress("Invalid arguments")
             	const XMLCh* year_x = attrs.getValue(tr("year"));
             	if(year_x != NULL){
-            		logger.debug(format("latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
+            		logger.debug(format("         latest_year {}",tr(year_x)));// @suppress("Invalid arguments")
             		latest_date = year_x;
             	} else {
-            		logger.error(format("No year for 'other' citation {}",id)); // @suppress("Invalid arguments")
+            		logger.error(format("         No year for 'other' citation {}",id)); // @suppress("Invalid arguments")
             	}// close year not NULL
         	}// close entry_type XvY or other
 
-        }else {
-
+        } else { // not <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
         	logger.debug(format( // @suppress("Invalid arguments")
-        			"\ncurrent_line: {} not <10\n"
-        			"OR entry_type {} not XvY,standard,other,\n"
-        			"OR ( current line NOT 0 (line = {})\n"
-        			"     AND  ( 1st XvY NOT empty (empty = {})\n"
-        			"            or 1st other NOT empty (empty = {})\n"
-        			"          )\n"
-        			"   )\n"
-        			")",//{}\n{}\n{}\n{}\n{}",
-			        current_line,
-					tr(entry_type_x),
-			        current_line,
-					first_X_v_Ys.empty(),
-					first_case_citations_other.empty()
+        			"else citation but {} or {} or ( {} and ({}{})) "
+        			"current_line: {} >= 10 {}  OR  "
+        			"entry_type not XvY,standard,other {}  OR  "
+        			"( current_line NOT 0 {} line = {} AND  "
+        			"( 1st XvY NOT empty {}  "
+        			"or 1st other NOT empty {}))" ,//{}\n{}\n{}\n{}\n{}",
+					current_line >= 10,
+					entry_types.count(entry_type_x)==0,
+			        current_line !=0,
+					!first_X_v_Ys.empty(),
+					!first_case_citations_other.empty(),
+					current_line, current_line >= 10,
+					entry_types.count(entry_type_x)==0,
+					current_line !=0,
+					current_line,
+					!first_X_v_Ys.empty(),
+					!first_case_citations_other.empty()
         	        ));
         } // close <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
-    } else if ( ( //close of is citation
-    	//below means already found first XvY or other, line number; element is RELATION
-    	!first_X_v_Ys.empty() || !first_case_citations_other.empty()) &&
+    } else if (  //close of is citation element
+        //RELATION is element, and is first XvY or other, citation line number has number(s);
+    	( !first_X_v_Ys.empty() || !first_case_citations_other.empty() ) &&
     	XMLString::compareString(localname, tr("RELATION")) == 0 &&
-		!citation_line_numbers.empty() ){
+		!citation_line_numbers.empty() )
+    {
+    	logger.debug("RELATION, first XvY or other, line number");
+    	mp_attributes = &attrs; //TODO: Why this assignment here, where is mp_attributes used next?
 
-    	mp_attributes = &attrs;
-    	//standard case, and already seen XvY or other
-    	logger.debug("checking RELATION");
+    	//standard case, and already in first XvY or other
     	if ( attrs.getValue(tr("standard_case")) != NULL &&
-    		(  (!attrs.getValue(tr("X_vs_Y")) != NULL &&
+    		(  (attrs.getValue(tr("X_vs_Y")) != NULL &&
 			   find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y"))) == true)
     			||
-			   (!attrs.getValue(tr("case_citation_other")) != NULL &&
+			   (attrs.getValue(tr("case_citation_other")) != NULL &&
 				find(first_case_citations_other,attrs.getValue(tr("case_citation_other"))) == true)
-			)) {
+			))
+    	{
+    		logger.debug("   standard and in first XvY or other");
     		if(first_equiv_relations_type == NULL){
-    			logger.debug("first_equiv_relations_type=NULL");
-    			logger.debug(first_equiv_relations_type);
+    			logger.debug("      first_equiv_relations_type is NULL, set to:");
     			if(XMLString::compareString(attrs.getValue(tr("gram_type")),tr("multi_line"))){
     				first_equiv_relations_type = "multi_line";
-    			}else{
-    				first_equiv_relations_type = "multi_line";
+    				logger.debug("         mulit_line");
+    			} else {
+    				first_equiv_relations_type = "same_line";
+    				logger.debug("         same_line");
     			}
+    		} else {//else for tracking only, first_equiv_relations_type
+    			logger.debug(format("else true exists PREVIOUS first_equiv_relations_type: {}",first_equiv_relations_type)); // @suppress("Invalid arguments")
+    		} //close of else/not first equiv
 
-    		}
-    	}
-    	//const XMLCh* id_x = attrs.getValue(tr("id"));
-    	//citations[id_x]= (void*)mp_attributes;)
+    	} else { //not for tracking only, else of standard_case and XvY or Other not in firsts
 
+    		// first, a bunch of logging only for tracking, showing else of standard_case and XvY or Other not in firsts
+    		if(logger.level() == spdlog::level::debug){
+				const char* standard = attrs.getValue(tr("standard_case"))?"standard_case":"NOT standard_case";
+				const char* XvY = attrs.getValue(tr("X_vs_Y"))==NULL?"NO XvY":
+					find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y")))? "XvY in first":"XvY NOT in first";
+				const char* other = attrs.getValue(tr("case_citation_other"))==NULL?"NO other":
+					find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y")))? "other in first":"other NOT in first";
+
+				const char* tfstandard = attrs.getValue(tr("standard_case"))==NULL?"true":"false";
+				const char* tfXvY = attrs.getValue(tr("X_vs_Y"))==NULL?"true":
+					find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y")))? "false":"true";
+				const char* tfother = attrs.getValue(tr("case_citation_other"))==NULL?"true":
+					find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y")))? "false":"true";
+				logger.debug(format("else  {} {} {} {}, {}, {}, ln {}", // @suppress("Invalid arguments")
+					tfstandard, tfXvY, tfother, standard,XvY, other, (unsigned int)flocator->getLineNumber()));
+			}//close debug
+
+    		if(  attrs.getValue(tr("includes_docket_string")) != NULL && attrs.getValue(tr("theme")) != NULL  ){
+				  theme = attrs.getValue(tr("theme"));
+				  includes_docket_string = attrs.getValue(tr("includes_docket_string"));
+    			  if(logger.level() == spdlog::level::debug){
+					  logger.debug(format("docket_relations[{}]={}",tr(theme),tr(includes_docket_string))); // @suppress("Invalid arguments")
+    			  } //close of debug
+    		} //close of if docket_string
+    	}// close of not not standard or not XvY,other or is but not in firsts
+
+    } else { // close of Relation, so here it's not Relation, for tracking, just log statements
+    	logger.debug(format("else {} {} {} (NOT RELATION or Citation, firsts both empty, cite line#s empty) | Element: {}", // @suppress("Invalid arguments")
+    	XMLString::compareString(localname, tr("RELATION")) != 0, // @suppress("Invalid arguments")
+    	first_X_v_Ys.empty() && first_case_citations_other.empty(), // @suppress("Invalid arguments")
+    	citation_line_numbers.empty(),
+    	XMLString::compareString(localname, tr("RELATION")) != 0? tr(localname): "RELATION")); // @suppress("Invalid arguments")
+    	logger.trace(format("Not RELATION {}",XMLString::compareString(localname, tr("RELATION")) != 0)); // @suppress("Invalid arguments")
+    	logger.trace(format("firsts both empty {}",first_X_v_Ys.empty() && first_case_citations_other.empty())); // @suppress("Invalid arguments")
+    	logger.trace(format("citation line nums empty {}",citation_line_numbers.empty() )); // @suppress("Invalid arguments")
     }
-
-}
+    	//close of RELATION, firsts not empty, citation_line_number not empty
+} // close of all
 
 
 //logger.debug(format("{}",entry_types.size())); // @suppress("Invalid arguments")

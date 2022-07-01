@@ -65,11 +65,15 @@ public:
 
 	std::unordered_map<const XMLCh*, void*>  citations;
 	std::unordered_map<const XMLCh*, void*>  local_dict;
+	std::unordered_map<const XMLCh*, void*>  docket_relations;
 
 	static std::set<int>                     citation_line_numbers;
 	static std::set<const XMLCh*, decltype(cmpx)> entry_types;
 	//static std::set<const XMLCh*> entry_types;
 	static SAX2XMLReaderLoc*        fparser;
+
+	const XMLCh* theme;
+	const XMLCh* includes_docket_string;
 
 	//const xercesc::ReaderMgr* flocator;
 
