@@ -26,6 +26,7 @@
 #include "SAX2Count.hpp"
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
 #if defined(XERCES_NEW_IOSTREAMS)
 #include <fstream>
@@ -44,6 +45,20 @@
 #include <locale.h>
 #include <locale>
 #include <clocale>
+
+#include <xercesc/sax2/Attributes.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+
+#define tr XMLString::transcode
+
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
+#include "fmt/core.h"
+
+#define LOGGER_ERROR_INCLUDE
+#include "logging.h"
+
+static spdlog::logger logger = getLog();
 
 
 
@@ -127,6 +142,25 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		const unsigned long startMillis = XMLPlatformUtils::getCurrentMillis();
 		//parser->parse(xmlFile);
 		parser->parse(xmlBuf);
+		// this works ContentHandler* handler = parser->getContentHandler();
+		//DefaultHandler* saxhandler = (DefaultHandler)handler;
+		// this works std::unordered_map<const XMLCh*, void*> citations = ((SAX2CountHandlers*)handler)->citations;
+
+		SAX2CountHandlers* hand = (SAX2CountHandlers*)parser->getContentHandler();
+		//DefaultHandler* saxhandler = (DefaultHandler)handler;
+		std::unordered_map<const XMLCh*, const Attributes*> cites = hand->citations;
+		logger.debug(cites.size());
+		//const Attributes* vattrs =  cites[0];
+		for (auto& el: cites) {
+		    if(el.second)std::cout << el.second->getLength()<<tr(el.second->getValue(tr("relation_type"))) << " "<<(el.second==NULL?"NULL":"Not NULL")<<tr(el.first)<<std::endl;//<<el.second->findValue("relation_type");
+		    //std::cout<<"\n\n\n\n"<<tr(el.second->getValue(tr("entry_type"))) <<"\n\n\n";
+		}
+		//vattrs->size();
+		//const Attributes* attrs = vattrs->elementAt(0);
+		//std::cout<< "\n\n\n oh oh %lu \n\n\n", vattrs->size();//, attrs->elementAt(1)->getValue()
+		//std::cout<< "\n\n\n" << vattrs->getValue(tr("relation_type"));
+		//std::cout<< "\n\n\n" << (vattrs == NULL?"true":"false");
+
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;
 	} catch (const OutOfMemoryException&) {

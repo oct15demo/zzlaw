@@ -100,10 +100,11 @@ SAX2CountHandlers::SAX2CountHandlers() :
 {
 	current_line = 0; //int
 	// loop because tr needed to make XMLCh*, cast to const* to match attributes
+	// set used later to check entry_type is one of the three, set declaration made with lambda passed in order to give count
 	for (int i=0;i<(sizeof(entry_type_chptrs)/(sizeof(char*)));i++){
 		const XMLCh* entry_type_x = (const XMLCh*)tr(entry_type_chptrs[i]);
 		entry_types.insert(entry_type_x);
-		int count = entry_types.count(entry_type_x);
+		int count = entry_types.count(entry_type_x);// because it's a set, count is always 1 or 0
 		logger.debug(format("entry type {}: count {} for {}",i, count,entry_type_chptrs[i]));// @suppress("Invalid arguments")
 	}
 
@@ -136,11 +137,13 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     	current_line = line_number;
     }
-
+    logger.warn(format("localname is {} ", tr(localname)));
     if (XMLString::compareString(localname, tr("citation")) == 0 ){
     	mp_attributes = &attrs;
     	const XMLCh* id_x = attrs.getValue(tr("id"));
-    	citations[id_x]= (void*)mp_attributes;
+    	const Attributes* const_attrs = &attrs;
+    	std::cout<<"\n\n\n\n"<<tr(const_attrs->getValue(tr("entry_type"))) <<"\n\n\n";
+    	citations[id_x]= const_attrs;
     	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
     	char* id = tr(id_x);
     	const XMLCh* entry_type_x = attrs.getValue(tr("entry_type"));
@@ -153,6 +156,11 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 
         // <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
         //logic: What is purpose of first XvY, other, no line? no check of standard?
+
+//TODO: Question: iif current line 0, empty doesn't matter, attrs appended to firsts, also why are firsts lists, or former answers latter
+
+
+
         if( current_line < 10 && entry_types.count(entry_type_x)!=0 &&
         		((first_X_v_Ys.empty() && first_case_citations_other.empty()) || current_line==0))
         {
@@ -162,7 +170,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         	logger.debug(format("  Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
 
         	if(citation_line_numbers.count(line_number)==0){
-        		citation_line_numbers.insert(line_number);
+        		citation_line_numbers.insert(line_number); //changed from list to set since it checks for duplicates (unclear if list necessary later)
         		//logger.debug(format("line_number {} added to citation_line_numbers",line_number)); // @suppress("Invalid arguments")
         	}else{
         		//not necessarily an error, but log that way to find if ever occurs
@@ -212,12 +220,12 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         	        ));
         } // close <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
     } else if (  //close of is citation element
-        //RELATION is element, and is first XvY or other, citation line number has number(s);
+        //RELATION is element, and first of XvY or other exists, citation line number has number(s);
     	( !first_X_v_Ys.empty() || !first_case_citations_other.empty() ) &&
     	XMLString::compareString(localname, tr("RELATION")) == 0 &&
 		!citation_line_numbers.empty() )
     {
-    	logger.debug("RELATION, first XvY or other, line number");
+    	logger.debug("RELATION, first XvY or first other exists, a citation line numbers exists");
     	mp_attributes = &attrs; //TODO: Why this assignment here, where is mp_attributes used next?
 
     	//standard case, and already in first XvY or other
@@ -229,7 +237,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 				find(first_case_citations_other,attrs.getValue(tr("case_citation_other"))) == true)
 			))
     	{
-    		logger.debug("   standard and in first XvY or other");
+    		logger.debug("   standard and XvY in first XvY or other in first other");
     		if(first_equiv_relations_type == NULL){
     			logger.debug("      first_equiv_relations_type is NULL, set to:");
     			if(XMLString::compareString(attrs.getValue(tr("gram_type")),tr("multi_line"))){
@@ -240,9 +248,18 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     				logger.debug("         same_line");
     			}
     		} else {//else for tracking only, first_equiv_relations_type
-    			logger.debug(format("else true exists PREVIOUS first_equiv_relations_type: {}",first_equiv_relations_type)); // @suppress("Invalid arguments")
+    			logger.debug(format("else for first_equiv_relations_type, previous exists: {}",first_equiv_relations_type)); // @suppress("Invalid arguments")
     		} //close of else/not first equiv
+    		//[attrs](const XMLCh* std_case){return XMLString::compareString(attrs.getValue(tr("standard_case")),std_case);})){
+    		const XMLCh* attr_to_compare = attrs.getValue(tr("standard_case")); //attrs is param to ::startElement, can't directly capture
+    		if(!std::any_of(first_standard_cases.begin(), first_standard_cases.end(),
+    				[attr_to_compare](const XMLCh* std_case){return XMLString::compareString(attr_to_compare,std_case);})){
 
+    			first_standard_cases.push_back((XMLCh*)attrs.getValue(tr("standard_case")));
+    			logger.debug(format("append standard case to first {}",tr(attrs.getValue(tr("standard_case"))))); // @suppress("Invalid arguments")
+    		}else{ // else for tracking only
+    			logger.debug(format("else already in first {}",tr(attrs.getValue(tr("standard_case"))))); // @suppress("Invalid arguments")
+    		}
     	} else { //not for tracking only, else of standard_case and XvY or Other not in firsts
 
     		// first, a bunch of logging only for tracking, showing else of standard_case and XvY or Other not in firsts
@@ -260,15 +277,16 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 					find(first_X_v_Ys,attrs.getValue(tr("X_vs_Y")))? "false":"true";
 				logger.debug(format("else  {} {} {} {}, {}, {}, ln {}", // @suppress("Invalid arguments")
 					tfstandard, tfXvY, tfother, standard,XvY, other, (unsigned int)flocator->getLineNumber()));
-			}//close debug
+			}//close else debug logging !(standard_case and XvY or Other in firsts)
 
     		if(  attrs.getValue(tr("includes_docket_string")) != NULL && attrs.getValue(tr("theme")) != NULL  ){
 				  theme = attrs.getValue(tr("theme"));
 				  includes_docket_string = attrs.getValue(tr("includes_docket_string"));
-    			  if(logger.level() == spdlog::level::debug){
 					  logger.debug(format("docket_relations[{}]={}",tr(theme),tr(includes_docket_string))); // @suppress("Invalid arguments")
-    			  } //close of debug
-    		} //close of if docket_string
+    			  docket_relations[theme]=(XMLCh*)includes_docket_string;
+    		}else{
+    			logger.debug(format("else {},{} inc_docket_str theme are NULL, docket_relations[theme] not added",attrs.getValue(tr("includes_docket_string")) == NULL, attrs.getValue(tr("theme")) == NULL)); // @suppress("Invalid arguments")
+    		}//close of if docket_string
     	}// close of not not standard or not XvY,other or is but not in firsts
 
     } else { // close of Relation, so here it's not Relation, for tracking, just log statements
@@ -368,3 +386,6 @@ void SAX2CountHandlers::resetErrors()
 {
     fSawErrors = false;
 }
+
+//TODO: add to notes
+   		//https://www.techiedelight.com/check-vector-contains-given-element-cpp/

@@ -63,7 +63,7 @@ public:
 	const Attributes*        mp_attributes;
 	const xercesc::Locator*  flocator;
 
-	std::unordered_map<const XMLCh*, void*>  citations;
+	std::unordered_map<const XMLCh*, const Attributes*>  citations;
 	std::unordered_map<const XMLCh*, void*>  local_dict;
 	std::unordered_map<const XMLCh*, void*>  docket_relations;
 
