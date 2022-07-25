@@ -22,6 +22,31 @@
 // ---------------------------------------------------------------------------
 //  Includes
 // ---------------------------------------------------------------------------
+#include <sstream>
+
+#include <xercesc/util/IOException.hpp>
+#include <xercesc/util/RefStackOf.hpp>
+#include <xercesc/util/XMLUniDefs.hpp>
+#include <xercesc/util/Janitor.hpp>
+#include <xercesc/sax2/ContentHandler.hpp>
+#include <xercesc/sax2/LexicalHandler.hpp>
+#include <xercesc/sax2/DeclHandler.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+#include <xercesc/sax/DTDHandler.hpp>
+#include <xercesc/sax/ErrorHandler.hpp>
+#include <xercesc/sax/EntityResolver.hpp>
+#include <xercesc/sax/SAXParseException.hpp>
+#include <xercesc/sax/SAXException.hpp>
+#include <xercesc/internal/XMLScannerResolver.hpp>
+#include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
+#include <xercesc/validators/common/GrammarResolver.hpp>
+#include <xercesc/framework/XMLGrammarPool.hpp>
+#include <xercesc/framework/XMLSchemaDescription.hpp>
+#include <xercesc/util/OutOfMemoryException.hpp>
+#include <xercesc/util/XMLEntityResolver.hpp>
+#include <string.h>
+
+
 
 #include "SAX2Count.hpp"
 
@@ -32,6 +57,8 @@
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/sax/SAXException.hpp>
+
+#include <xercesc/util/RefVectorOf.hpp>
 
 #include <unordered_map>
 #include <set>
@@ -70,7 +97,7 @@ bool find(vector<T*> vector_x, const T* item_x){
 //static members only
 char* entry_type_chptrs[] = { {"case_X_vs_Y"}, {"case_citation_other"}, {"standard_case"}};
 std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
-//std::set<const XMLCh*> SAX2CountHandlers::entry_types;
+
 std::set<int> SAX2CountHandlers::citation_line_numbers;
 // ---------------------------------------------------------------------------
 //  SAX2CountHandlers: Constructors and Destructor
@@ -91,6 +118,7 @@ SAX2CountHandlers::SAX2CountHandlers() :
 	, first_case_citations_other(0)
 	, first_standard_cases(0) //static
 	, local_dict(0)
+	, citations(0)
 	, fSawErrors(false)
 	, mp_attributes(0)
 	, flocator(0)
@@ -137,13 +165,62 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     			    				(unsigned int)flocator->getLineNumber(),tr(flocator->getSystemId()))); // @suppress("Invalid arguments")
     	current_line = line_number;
     }
-    logger.warn(format("localname is {} ", tr(localname)));
+    logger.warn(format("localname is {} ", tr(localname))); // @suppress("Invalid arguments")
     if (XMLString::compareString(localname, tr("citation")) == 0 ){
     	mp_attributes = &attrs;
     	const XMLCh* id_x = attrs.getValue(tr("id"));
     	const Attributes* const_attrs = &attrs;
     	std::cout<<"\n\n\n\n"<<tr(const_attrs->getValue(tr("entry_type"))) <<"\n\n\n";
-    	citations[id_x]= const_attrs;
+    	// first we will write out the clone function, then if that works, we'll stick it in a helper class
+
+    	XMLSize_t len = attrs.getLength();
+
+    	// from XMLReaderFactory::CreateXMLReader line 49, called from makecsv3.cpp line 224
+    	MemoryManager* const  memManager = XMLPlatformUtils::fgMemoryManager;
+    	XMLGrammarPool* const gramPool = 0;
+
+		// from void SAX2XMLReaderImpl::initialize() in SAX2XMLReaderImpl.cpp line 124
+        GrammarResolver* grammarResolver = new (memManager) GrammarResolver(gramPool, memManager);
+        //UNNEEDED?    //XMLStringPool* URIStringPool = grammarResolver->getStringPool();
+
+        // SAX2XMLReaderImpl.cpp line 130
+        const XMLScanner* scanner = XMLScannerResolver::getDefaultScanner(0, grammarResolver, memManager);
+
+        // line 42 of XMLScannerResolver uses     return new (manager) IGXMLScanner(valToAdopt, grammarResolver, manager);
+		VecAttributesImpl* newAttrs = new VecAttributesImpl();  //VecAttributesImpl is not a vector, it's a wrapper around RefVectorOf
+		//Instead of impl of Attributes VecAttributesImpl::Attributes, could use xerces util RefVectorOf::BaseRefVector templated class using KeyValuePair, KeyRefPair, or KVStringPair, or use std containers.
+
+		RefVectorOf<XMLAttr> * newRefVectorOf = new (memManager) RefVectorOf<XMLAttr>  (32, false, memManager) ;
+
+		XMLSize_t atLen = attrs.getLength();
+		XMLSize_t i;
+        std::stringstream bruce;
+		XMLAttr* cpXMLAttr;
+		for(i = 0;i<atLen;i++){
+
+	        logger.debug(format("{}. QName LocalName URI type: {}, {}, {}, {}", i, tr(attrs.getQName(i)), tr(attrs.getLocalName(i)), tr(attrs.getURI(i)),tr(attrs.getType(i)))); // @suppress("Invalid arguments")
+
+	        cpXMLAttr = new (memManager) XMLAttr
+		            (
+		                0, //URIId but reading from file not uri, and also that int inaccessible, hidden inside vector attr
+						attrs.getLocalName(i),
+						attrs.getValue(i)
+
+					);
+	        bruce << tr(attrs.getLocalName(i))<<" : "<<tr(attrs.getValue(i))<< " | ";
+            newRefVectorOf->addElement(cpXMLAttr);
+
+		}
+		logger.debug(bruce.str());
+		newRefVectorOf->size();
+		logger.debug(newRefVectorOf->size());
+		//The scanner can actually be set to NULL and the above scanner construction skipped since the VecAttributesImpl isn't scanning.
+		newAttrs->setVector(newRefVectorOf, newRefVectorOf->size(), scanner, false);
+
+		//citations[id_x]= mp_attributes;
+		citations[tr(id_x)]= newAttrs;
+		logger.debug(citations.size() );
+
     	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
     	char* id = tr(id_x);
     	const XMLCh* entry_type_x = attrs.getValue(tr("entry_type"));
@@ -157,9 +234,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         // <10 && (XvY,std,other) && ((first XvY,other) or no line attr)
         //logic: What is purpose of first XvY, other, no line? no check of standard?
 
-//TODO: Question: iif current line 0, empty doesn't matter, attrs appended to firsts, also why are firsts lists, or former answers latter
-
-
+        //TODO: Question: iif current line 0, empty doesn't matter, attrs appended to firsts, also why are firsts lists, or former answers latter
 
         if( current_line < 10 && entry_types.count(entry_type_x)!=0 &&
         		((first_X_v_Ys.empty() && first_case_citations_other.empty()) || current_line==0))
@@ -302,32 +377,6 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	//close of RELATION, firsts not empty, citation_line_number not empty
 } // close of all
 
-
-//logger.debug(format("{}",entry_types.size())); // @suppress("Invalid arguments")
-//set<const XMLCh *,less<const XMLCh *>,allocator<const XMLCh *>>::iterator iter = entry_types.begin();
-/*std::cout<<tr(*iter++)<<std::endl;
-std::cout<<tr(*iter++)<<std::endl;
-std::cout<<tr(*iter)<<std::endl;*/
-//const XSDLocator &loc = XSDLocator();
-//const Locator* locator = this->getScanner()->getLocator();
-/*loc.setValues(const XMLCh* const systemId,
-              const XMLCh* const publicId,
-              const XMLFileLoc lineNo,
-			  const XMLFileLoc columnNo);
-
-const XMLCh* shit = tr("shit");
-const SAXParseException e = SAXParseException(shit,loc);
-this->error(e);*/
-
-
-
-    //XMLString::release(&attr_name);
-    	//XMLString::release(&attr_value);
-    //XMLString::release(&el_localname);
-
-
-//xercesc::SAX2XMLReaderLoc* SAX2CountHandlers::fparser = NULL;
-
 void SAX2CountHandlers::characters(  const   XMLCh* const chars
 								    , const XMLSize_t length) {
     fCharacterCount += length;
@@ -386,6 +435,3 @@ void SAX2CountHandlers::resetErrors()
 {
     fSawErrors = false;
 }
-
-//TODO: add to notes
-   		//https://www.techiedelight.com/check-vector-contains-given-element-cpp/

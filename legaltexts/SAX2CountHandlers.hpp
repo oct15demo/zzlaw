@@ -44,6 +44,11 @@
 XERCES_CPP_NAMESPACE_USE
 
 auto cmpx = [](const XMLCh* a, const XMLCh* b) {
+	return strcmp(XMLString::transcode(a),XMLString::transcode(b));
+};
+
+//for sorting
+auto cmp4sort = [](const XMLCh* a, const XMLCh* b) {
 	int x = strcmp(XMLString::transcode(a),XMLString::transcode(b));
 	if(x<0)return true;
 	return false;
@@ -63,11 +68,12 @@ public:
 	const Attributes*        mp_attributes;
 	const xercesc::Locator*  flocator;
 
-	std::unordered_map<const XMLCh*, const Attributes*>  citations;
+	std::unordered_map<const std::string, VecAttributesImpl*, std::hash<std::string>>  citations;
 	std::unordered_map<const XMLCh*, void*>  local_dict;
 	std::unordered_map<const XMLCh*, void*>  docket_relations;
 
 	static std::set<int>                     citation_line_numbers;
+	//unordered_set uses hash and can't use pointers as key
 	static std::set<const XMLCh*, decltype(cmpx)> entry_types;
 	//static std::set<const XMLCh*> entry_types;
 	static SAX2XMLReaderLoc*        fparser;

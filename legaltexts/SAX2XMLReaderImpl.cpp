@@ -57,7 +57,7 @@
 #include "spdlog/spdlog.h"
 #include "fmt/core.h"
 
-#define LOGGER_ERROR
+#define LOGGER_ERROR // previously was just LOGGER_ERROR
 #include "logging.h"
 
 static spdlog::logger logger = getLog();

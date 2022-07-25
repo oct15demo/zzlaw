@@ -23,10 +23,13 @@
 // ---------------------------------------------------------------------------
 //  Includes
 // ---------------------------------------------------------------------------
+#include <sstream>
+
 #include "SAX2Count.hpp"
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 #include <xercesc/parsers/SAX2XMLReaderImpl.hpp>
+#include <xercesc/internal/VecAttributesImpl.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
 #if defined(XERCES_NEW_IOSTREAMS)
 #include <fstream>
@@ -133,6 +136,9 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
     //parser->setContentHandler(&handler);
     //parser->setErrorHandler(&handler);
 	//parser->fscanner->getLocator();
+//Fatal Error at file scotus/100000.case10, line 2, char 164
+//Message: index is beyond vector bounds
+//<citation id="100000_1" entry_type="standard_case" start="1" end="20" reporter="U.S." standard_reporter="U.S." volume="259" page_number="188" year="1922" line="2">259 U.S. 188 (1922)</citation>
 
     unsigned long duration;
     bool                         errorOccurred = false;
@@ -148,18 +154,24 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 
 		SAX2CountHandlers* hand = (SAX2CountHandlers*)parser->getContentHandler();
 		//DefaultHandler* saxhandler = (DefaultHandler)handler;
-		std::unordered_map<const XMLCh*, const Attributes*> cites = hand->citations;
+
+		std::unordered_map<const std::string, VecAttributesImpl*, std::hash<std::string>>cites = hand->citations;
 		logger.debug(cites.size());
 		//const Attributes* vattrs =  cites[0];
-		for (auto& el: cites) {
-		    if(el.second)std::cout << el.second->getLength()<<tr(el.second->getValue(tr("relation_type"))) << " "<<(el.second==NULL?"NULL":"Not NULL")<<tr(el.first)<<std::endl;//<<el.second->findValue("relation_type");
-		    //std::cout<<"\n\n\n\n"<<tr(el.second->getValue(tr("entry_type"))) <<"\n\n\n";
+		//for (std::pair<const XMLString, VecAttributesImpl*> el: cites) {
+		for (std::pair <std::string, VecAttributesImpl*>el: cites) {
+		   // if(el.second)
+			//VecAttributesImpl* attrsptr = el.second;
+			//VecAttributesImpl& attrs = *attrsptr;
+			std::stringstream bruce; //bruce stringstream
+			//XMLSize_t x;
+				bruce << el.first << "    ";
+				for(unsigned int i=0;i<((VecAttributesImpl*)(el.second))->getLength();i++){
+				//for(int i=0;i<3;i++){
+					bruce << tr(((VecAttributesImpl*)(el.second))->getLocalName(i))<<" : "<<tr(((VecAttributesImpl*)(el.second))->getValue(i))<< " | ";
+				}
+		    logger.debug(bruce.str());
 		}
-		//vattrs->size();
-		//const Attributes* attrs = vattrs->elementAt(0);
-		//std::cout<< "\n\n\n oh oh %lu \n\n\n", vattrs->size();//, attrs->elementAt(1)->getValue()
-		//std::cout<< "\n\n\n" << vattrs->getValue(tr("relation_type"));
-		//std::cout<< "\n\n\n" << (vattrs == NULL?"true":"false");
 
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;
