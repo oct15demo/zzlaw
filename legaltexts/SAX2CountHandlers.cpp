@@ -44,7 +44,7 @@
 #include <xercesc/framework/XMLSchemaDescription.hpp>
 #include <xercesc/util/OutOfMemoryException.hpp>
 #include <xercesc/util/XMLEntityResolver.hpp>
-#include <string.h>
+#include <string>
 
 
 
@@ -146,6 +146,68 @@ SAX2CountHandlers::~SAX2CountHandlers()
 //  SAX2CountHandlers: Implementation of the SAX DocumentHandler interface
 // ---------------------------------------------------------------------------
 
+/*
+ * cloneAttributes
+ * Uses LocalName not QName and ignores URI
+ */
+VecAttributesImpl* cloneAttributes(VecAttributesImpl& attrs, bool useScanner=false){
+
+	// from XMLReaderFactory::CreateXMLReader line 49
+	MemoryManager* const  memManager = XMLPlatformUtils::fgMemoryManager;
+
+	XMLScanner* scanner;
+
+	if(useScanner){
+
+		// from void SAX2XMLReaderImpl::initialize() line 124
+		GrammarResolver* grammarResolver = new (memManager) GrammarResolver(0, memManager); // line 127
+		// use of 0 from SAX2XMLReaderImpl.hpp line 74 default constructor, XMLGrammarPool* const gramPool = 0
+
+		XMLStringPool* URIStringPool = grammarResolver->getStringPool(); // line 128
+
+		scanner = XMLScannerResolver::getDefaultScanner(0, grammarResolver, memManager);
+		// line 42 of XMLScannerResolver::getDefaultScanner uses     return new (manager) IGXMLScanner(valToAdopt, grammarResolver, manager);
+
+		scanner->setURIStringPool(URIStringPool);
+
+	}else{
+		scanner = NULL;
+	}
+
+	VecAttributesImpl* newAttrs = new VecAttributesImpl();  //VecAttributesImpl is not a vector, it's a wrapper around RefVectorOf
+
+	RefVectorOf<XMLAttr> * newRefVectorOf = new (memManager) RefVectorOf<XMLAttr>  (32, false, memManager) ;
+
+	XMLSize_t atLen = attrs.getLength();
+	XMLSize_t i;
+	std::stringstream bruce;
+	XMLAttr* cpXMLAttr;
+	for(i = 0;i<atLen;i++){
+
+		//Ever QName != LocalName? when URI != ""? logger.debug(format("{}. QName LocalName URI type: {}, {}, {}, {}", i, tr(attrs.getQName(i)), tr(attrs.getLocalName(i)), tr(attrs.getURI(i)),tr(attrs.getType(i)))); // @suppress("Invalid arguments")
+
+		cpXMLAttr = new (memManager) XMLAttr
+				(
+					0, //URIId, 0 if reading file, but int is inaccessible from attrs, inside RefVectorOf XMLAttr, and getURI(i) returns an XMLCh*
+					attrs.getLocalName(i),
+					attrs.getValue(i)
+
+				);
+
+		if(logger.level() == spdlog::level::debug){
+			bruce << tr(attrs.getLocalName(i))<<" : "<<tr(attrs.getValue(i))<< " | ";
+		}
+		newRefVectorOf->addElement(cpXMLAttr);
+
+	}
+	logger.debug(bruce.str());
+	newRefVectorOf->size();
+	logger.debug(newRefVectorOf->size());
+	//The scanner can actually be set to NULL and the above scanner construction skipped if the VecAttributesImpl isn't scanning.
+	newAttrs->setVector(newRefVectorOf, newRefVectorOf->size(), scanner, false);
+
+	return newAttrs;
+}
 
 void SAX2CountHandlers::startElement(const XMLCh* const  uri
                                    , const XMLCh* const localname
@@ -173,56 +235,13 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	std::cout<<"\n\n\n\n"<<tr(const_attrs->getValue(tr("entry_type"))) <<"\n\n\n";
     	// first we will write out the clone function, then if that works, we'll stick it in a helper class
 
-    	XMLSize_t len = attrs.getLength();
 
-    	// from XMLReaderFactory::CreateXMLReader line 49, called from makecsv3.cpp line 224
-    	MemoryManager* const  memManager = XMLPlatformUtils::fgMemoryManager;
-    	XMLGrammarPool* const gramPool = 0;
-
-		// from void SAX2XMLReaderImpl::initialize() in SAX2XMLReaderImpl.cpp line 124
-        GrammarResolver* grammarResolver = new (memManager) GrammarResolver(gramPool, memManager);
-        //UNNEEDED?    //XMLStringPool* URIStringPool = grammarResolver->getStringPool();
-
-        // SAX2XMLReaderImpl.cpp line 130
-        const XMLScanner* scanner = XMLScannerResolver::getDefaultScanner(0, grammarResolver, memManager);
-
-        // line 42 of XMLScannerResolver uses     return new (manager) IGXMLScanner(valToAdopt, grammarResolver, manager);
-		VecAttributesImpl* newAttrs = new VecAttributesImpl();  //VecAttributesImpl is not a vector, it's a wrapper around RefVectorOf
-		//Instead of impl of Attributes VecAttributesImpl::Attributes, could use xerces util RefVectorOf::BaseRefVector templated class using KeyValuePair, KeyRefPair, or KVStringPair, or use std containers.
-
-		RefVectorOf<XMLAttr> * newRefVectorOf = new (memManager) RefVectorOf<XMLAttr>  (32, false, memManager) ;
-
-		XMLSize_t atLen = attrs.getLength();
-		XMLSize_t i;
-        std::stringstream bruce;
-		XMLAttr* cpXMLAttr;
-		for(i = 0;i<atLen;i++){
-
-	        logger.debug(format("{}. QName LocalName URI type: {}, {}, {}, {}", i, tr(attrs.getQName(i)), tr(attrs.getLocalName(i)), tr(attrs.getURI(i)),tr(attrs.getType(i)))); // @suppress("Invalid arguments")
-
-	        cpXMLAttr = new (memManager) XMLAttr
-		            (
-		                0, //URIId but reading from file not uri, and also that int inaccessible, hidden inside vector attr
-						attrs.getLocalName(i),
-						attrs.getValue(i)
-
-					);
-	        bruce << tr(attrs.getLocalName(i))<<" : "<<tr(attrs.getValue(i))<< " | ";
-            newRefVectorOf->addElement(cpXMLAttr);
-
-		}
-		logger.debug(bruce.str());
-		newRefVectorOf->size();
-		logger.debug(newRefVectorOf->size());
-		//The scanner can actually be set to NULL and the above scanner construction skipped since the VecAttributesImpl isn't scanning.
-		newAttrs->setVector(newRefVectorOf, newRefVectorOf->size(), scanner, false);
 
 		//citations[id_x]= mp_attributes;
-		citations[tr(id_x)]= newAttrs;
-		logger.debug(citations.size() );
+		citations[tr(id_x)]= cloneAttributes((VecAttributesImpl&)attrs);
 
     	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
-    	char* id = tr(id_x);
+    	const char* id = tr(id_x);
     	const XMLCh* entry_type_x = attrs.getValue(tr("entry_type"));
         if (entry_type_x == NULL){
         	//logger.error("ERROR: \"entry_type\" not found in attributes of citation");
@@ -241,7 +260,8 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
         {
         	if(current_line == 0)logger.error("current_line == 0");
         	logger.debug("  < line 10, XvY,std,other, (1st XvY,other empty or line 0)");
-        	local_dict[id_x]= (void*)mp_attributes;
+
+        	local_dict[id]= (VecAttributesImpl*)mp_attributes;
         	logger.debug(format("  Added attributes to local_dict map, id {}",id)); // @suppress("Invalid arguments")
 
         	if(citation_line_numbers.count(line_number)==0){
@@ -356,9 +376,10 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 
     		if(  attrs.getValue(tr("includes_docket_string")) != NULL && attrs.getValue(tr("theme")) != NULL  ){
 				  theme = attrs.getValue(tr("theme"));
+				  std::string strTheme(tr(theme));
 				  includes_docket_string = attrs.getValue(tr("includes_docket_string"));
 					  logger.debug(format("docket_relations[{}]={}",tr(theme),tr(includes_docket_string))); // @suppress("Invalid arguments")
-    			  docket_relations[theme]=(XMLCh*)includes_docket_string;
+    			  docket_relations[strTheme]=(XMLCh*)includes_docket_string;
     		}else{
     			logger.debug(format("else {},{} inc_docket_str theme are NULL, docket_relations[theme] not added",attrs.getValue(tr("includes_docket_string")) == NULL, attrs.getValue(tr("theme")) == NULL)); // @suppress("Invalid arguments")
     		}//close of if docket_string

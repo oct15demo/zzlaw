@@ -119,7 +119,7 @@ int mainfromfillindata(int argc, char**argv){
 
 /* This is the C version of the similarly named function in the python file makecsv3.py
  * An additional parameter 'tupplelength' is added to provide the length of the parameter
- * 'values', an array tupple structures. It is not possible to determine the size of
+ * 'values', an array of tupple structures. It is not possible to determine the size of
  * an array passed as a parameter and python Ctypes only works with C structures, vs
  * C++ classes and std data structures like vectors and unordered_maps. To get around
  * this constraint, python lists or dictionaries are passed as arrays of structures and
@@ -254,7 +254,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		//const ReaderMgr* locator = scanner->getReaderMgr();
 		//handler.setLocator(locator);
 		//handler.setParser(parser);
-		int run_num = 1; //looptheloop 1000
+		int run_num = 1; //looptheloop 1000 for testing purposes
 		for(int i = 0; i < run_num; i++){ //"lenomdeficheavec_éàçôï" test filename
 			parseBuf(fileIn->fileptr, fileIn->size, fileIn->filename, parser);// fileIn->filename); // @suppress("Invalid arguments")
 		}

@@ -44,6 +44,7 @@
 
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <string>
 #include <iostream>
 #include <locale.h>
 #include <locale>
@@ -155,7 +156,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		SAX2CountHandlers* hand = (SAX2CountHandlers*)parser->getContentHandler();
 		//DefaultHandler* saxhandler = (DefaultHandler)handler;
 
-		std::unordered_map<const std::string, VecAttributesImpl*, std::hash<std::string>>cites = hand->citations;
+		std::unordered_map<std::string, VecAttributesImpl* >cites = hand->citations;
 		logger.debug(cites.size());
 		//const Attributes* vattrs =  cites[0];
 		//for (std::pair<const XMLString, VecAttributesImpl*> el: cites) {
@@ -172,6 +173,24 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 				}
 		    logger.debug(bruce.str());
 		}
+		std::vector<XMLCh*> first_other = hand->first_case_citations_other;
+		std::unordered_map<std::string, void*> doc_rel = hand->docket_relations;
+		if (!first_other.empty()){
+			for(XMLCh* case_id:first_other){
+				//if(docket_relations.)
+				int i;
+			}
+		}
+
+	   /* if first_case_citation_other:
+	        for case_id in first_case_citation_other:
+	            if case_id in docket_relations:
+	                values['docket_number'] = docket_relations[case_id]
+*/
+
+
+
+
 
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;

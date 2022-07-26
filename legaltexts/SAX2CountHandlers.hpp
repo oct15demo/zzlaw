@@ -25,7 +25,7 @@
 // ---------------------------------------------------------------------------
 //TODO: Consolidate #includes
 
-#include <string.h>
+#include <string>
 #include <unordered_map>
 #include <set>
 #include <vector>
@@ -68,9 +68,9 @@ public:
 	const Attributes*        mp_attributes;
 	const xercesc::Locator*  flocator;
 
-	std::unordered_map<const std::string, VecAttributesImpl*, std::hash<std::string>>  citations;
-	std::unordered_map<const XMLCh*, void*>  local_dict;
-	std::unordered_map<const XMLCh*, void*>  docket_relations;
+	std::unordered_map<std::string, VecAttributesImpl*>  citations;
+	std::unordered_map<std::string, VecAttributesImpl*>  local_dict;
+	std::unordered_map<std::string, void*>  docket_relations;
 
 	static std::set<int>                     citation_line_numbers;
 	//unordered_set uses hash and can't use pointers as key
