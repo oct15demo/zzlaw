@@ -20,6 +20,12 @@ using namespace std;
 
 typedef  unordered_map<const char*, const char*> HashMap;
 typedef struct tuppleware{const char* key; const char* value;} Tupple;
+//TODO: check for memory leaks, NULL ptr hazards, especially using struct instead of class and passing pointers, and through different scopes
+static tuppleware* newTupple(const char* key, const char* value){
+	struct tuppleware* newTuppleptr = (tuppleware*)malloc(sizeof(struct tuppleware));
+	newTuppleptr->key = key; newTuppleptr->value = value;
+	return newTuppleptr;
+}
 
 typedef struct mapYear {HashMap* valuesMap; string year;} MapYear;
 typedef struct tupplesYear {struct tuppleware* tupples; int length; const char* year;} TupplesYear;
@@ -53,7 +59,7 @@ Tupple* getVals();
 extern "C"
 TupplesYear getValsYear(HashMap pydict=valHash);
 
-TupplesYear fillInForReal(char* IE_file, Tupple* values, int tupplelength, char* txt_file,bool trace=false);
+TupplesYear fillInForReal(char* IE_file, unordered_map<const char*, const char*>* values_map, char* txt_file,bool trace=false);
 
 //utils
 bool fileExists(char* filepath);

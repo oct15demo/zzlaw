@@ -146,9 +146,10 @@ SAX2CountHandlers::~SAX2CountHandlers()
 //  SAX2CountHandlers: Implementation of the SAX DocumentHandler interface
 // ---------------------------------------------------------------------------
 
+//TODO: move to util file
 /*
  * cloneAttributes
- * Uses LocalName not QName and ignores URI
+ * Uses LocalName as key instead of QName and ignores URI and URI id, id inside RefVectorOf but inaccessible to wrapper VecAttributesImpl, and type defaults to CDATA
  */
 VecAttributesImpl* cloneAttributes(VecAttributesImpl& attrs, bool useScanner=false){
 
@@ -217,7 +218,6 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     fElementCount++;
     fAttrCount += attrs.getLength();
 
-    char* el_localname = XMLString::transcode(localname);
     int line_number;
     const XMLCh* line_num_x;
     logger.debug("*****                                                                                                     "); //spacer between lines read
@@ -233,11 +233,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	const XMLCh* id_x = attrs.getValue(tr("id"));
     	const Attributes* const_attrs = &attrs;
     	std::cout<<"\n\n\n\n"<<tr(const_attrs->getValue(tr("entry_type"))) <<"\n\n\n";
-    	// first we will write out the clone function, then if that works, we'll stick it in a helper class
 
-
-
-		//citations[id_x]= mp_attributes;
 		citations[tr(id_x)]= cloneAttributes((VecAttributesImpl&)attrs);
 
     	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
@@ -379,7 +375,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 				  std::string strTheme(tr(theme));
 				  includes_docket_string = attrs.getValue(tr("includes_docket_string"));
 					  logger.debug(format("docket_relations[{}]={}",tr(theme),tr(includes_docket_string))); // @suppress("Invalid arguments")
-    			  docket_relations[strTheme]=(XMLCh*)includes_docket_string;
+    			  docket_relations[strTheme]=tr(includes_docket_string);
     		}else{
     			logger.debug(format("else {},{} inc_docket_str theme are NULL, docket_relations[theme] not added",attrs.getValue(tr("includes_docket_string")) == NULL, attrs.getValue(tr("theme")) == NULL)); // @suppress("Invalid arguments")
     		}//close of if docket_string
@@ -422,9 +418,9 @@ void SAX2CountHandlers::startDocument()
 }
 
 
-/*// ---------------------------------------------------------------------------
-//  SAX2CountHandlers: Overrides of the SAX ErrorHandler interface
-// ---------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------
+  SAX2CountHandlers: Overrides of the SAX ErrorHandler interface
+  ---------------------------------------------------------------------------
 void SAX2CountHandlers::error(const SAXParseException& e)
 {
     fSawErrors = true;

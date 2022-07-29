@@ -64,133 +64,62 @@
 
 static spdlog::logger logger = getLog();
 
+#include "zzoflaw.h"
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser){
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<const char*, const char*>* values_map){
 
-
-//int parseThat(){
-
-  /*  const char*                  xmlFile      = 0;
-    SAX2XMLReader::ValSchemes    valScheme    = SAX2XMLReader::Val_Auto;
-    bool                         doNamespaces = true;
-    bool                         doSchema = true;
-    bool                         schemaFullChecking = false;
-    bool                         identityConstraintChecking = true;
-    bool                         doList = false;
-    bool                         errorOccurred = false;
-    bool                         namespacePrefixes = false;
-    bool                         recognizeNEL = false;
-    char                         localeStr[64];
-    memset(localeStr, 0, sizeof localeStr);
-*/
-/*    // Initialize the XML4C2 system
-	try {
-		if (strlen(localeStr)) {
-			XMLPlatformUtils::Initialize(localeStr);
-		} else {
-			XMLPlatformUtils::Initialize();
-		}
-		if (recognizeNEL) {
-			XMLPlatformUtils::recognizeNEL(recognizeNEL);
-		}
-	} catch (const XMLException& toCatch) {
-		XERCES_STD_QUALIFIER cerr << "Error during initialization! Message:\n"
-				<< StrX(toCatch.getMessage()) << XERCES_STD_QUALIFIER endl;
-		return 1;
-	}
-
-	*/
 	XMLCh* xmlch_filename = XMLString::transcode(filename);
-
 
 	MemBufInputSource xmlBuf((const XMLByte*)fileBuf, fileBufSize, xmlch_filename , false);
 
 	xmlBuf.setCopyBufToStream(false);
 
-/*
-	SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
-	parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, doNamespaces);
-	parser->setFeature(XMLUni::fgXercesSchema, doSchema);
-	parser->setFeature(XMLUni::fgXercesHandleMultipleImports, true);
-	parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
-	parser->setFeature(XMLUni::fgXercesIdentityConstraintChecking, identityConstraintChecking);
-	parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
-
-	if (valScheme == SAX2XMLReader::Val_Auto){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
-		parser->setFeature(XMLUni::fgXercesDynamic, true);
-	}
-	if (valScheme == SAX2XMLReader::Val_Never){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, false);
-	}
-	if (valScheme == SAX2XMLReader::Val_Always){
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
-		parser->setFeature(XMLUni::fgXercesDynamic, false);
-	}
-*/
-
-    //  Create our SAX handler object and install it on the parser, as the
-    //  document and error handler.
-
-	//SAX2CountHandlers handler = SAX2CountHandlers();
-    //parser->setContentHandler(&handler);
-    //parser->setErrorHandler(&handler);
-	//parser->fscanner->getLocator();
-//Fatal Error at file scotus/100000.case10, line 2, char 164
-//Message: index is beyond vector bounds
-//<citation id="100000_1" entry_type="standard_case" start="1" end="20" reporter="U.S." standard_reporter="U.S." volume="259" page_number="188" year="1922" line="2">259 U.S. 188 (1922)</citation>
-
     unsigned long duration;
-    bool                         errorOccurred = false;
+    bool          errorOccurred = false;
 	//try{
     if(true){
     try{
 		const unsigned long startMillis = XMLPlatformUtils::getCurrentMillis();
-		//parser->parse(xmlFile);
+
 		parser->parse(xmlBuf);
-		// this works ContentHandler* handler = parser->getContentHandler();
-		//DefaultHandler* saxhandler = (DefaultHandler)handler;
-		// this works std::unordered_map<const XMLCh*, void*> citations = ((SAX2CountHandlers*)handler)->citations;
 
 		SAX2CountHandlers* hand = (SAX2CountHandlers*)parser->getContentHandler();
 		//DefaultHandler* saxhandler = (DefaultHandler)handler;
 
 		std::unordered_map<std::string, VecAttributesImpl* >cites = hand->citations;
 		logger.debug(cites.size());
-		//const Attributes* vattrs =  cites[0];
-		//for (std::pair<const XMLString, VecAttributesImpl*> el: cites) {
+
 		for (std::pair <std::string, VecAttributesImpl*>el: cites) {
-		   // if(el.second)
-			//VecAttributesImpl* attrsptr = el.second;
-			//VecAttributesImpl& attrs = *attrsptr;
+
 			std::stringstream bruce; //bruce stringstream
-			//XMLSize_t x;
+
 				bruce << el.first << "    ";
 				for(unsigned int i=0;i<((VecAttributesImpl*)(el.second))->getLength();i++){
-				//for(int i=0;i<3;i++){
-					bruce << tr(((VecAttributesImpl*)(el.second))->getLocalName(i))<<" : "<<tr(((VecAttributesImpl*)(el.second))->getValue(i))<< " | ";
+					if(logger.level() == spdlog::level::debug){
+						bruce << tr(((VecAttributesImpl*)(el.second))->getLocalName(i))<<" : "<<tr(((VecAttributesImpl*)(el.second))->getValue(i))<< " | ";
+					}
 				}
 		    logger.debug(bruce.str());
 		}
 		std::vector<XMLCh*> first_other = hand->first_case_citations_other;
-		std::unordered_map<std::string, void*> doc_rel = hand->docket_relations;
+		std::unordered_map<std::string, std::string> doc_rel = hand->docket_relations;
+
 		if (!first_other.empty()){
 			for(XMLCh* case_id:first_other){
-				//if(docket_relations.)
-				int i;
+				if( doc_rel.count(tr(case_id)) >0 ){
+					//convert string to char* with &string[0]
+					if(logger.level() == spdlog::level::debug){
+						if((*values_map)["docket_number"] != NULL){
+							logger.error(format("values docket_number {} for case_id {} replaced by {}", (*values_map)["docket_number"],tr(case_id),&doc_rel[tr(case_id)][0])); // @suppress("Invalid arguments")
+						}else{
+							logger.debug(format("docket_number {} for case_id {} added to values_map", &doc_rel[tr(case_id)][0],tr(case_id))); // @suppress("Invalid arguments")
+						}
+					}
+					(*values_map)["docket_number"] = &doc_rel[tr(case_id)][0];
+				}
 			}
 		}
-
-	   /* if first_case_citation_other:
-	        for case_id in first_case_citation_other:
-	            if case_id in docket_relations:
-	                values['docket_number'] = docket_relations[case_id]
-*/
-
-
-
-
 
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;
@@ -211,9 +140,10 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 	}
     }
 
+    //Code below from original SAX2Count.cpp xerces example
+
     //SAX2CountHandlers* handler = (SAX2CountHandlers*)parser->getContentHandler();
-	// Print out the stats that we collected and time taken
-    //SAX2CountHandlers* handler = (SAX2CountHandlers*)parser->getContentHandler();
+	//Print out the stats that we collected and time taken
 
     /*SAX2CountHandlers* handlergot = (SAX2CountHandlers*)parser->getContentHandler();
 	if (!handlergot->getSawErrors()) {

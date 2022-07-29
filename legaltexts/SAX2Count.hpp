@@ -19,6 +19,7 @@
  * $Id$
  */
 
+// This is from the Xerces example code SAX2Count.hpp
 
 // ---------------------------------------------------------------------------
 //  Includes for all the program files to see

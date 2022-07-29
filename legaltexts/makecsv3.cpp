@@ -65,7 +65,7 @@
 #endif
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser);
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<const char*, const char*>* values_map);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
 //#define LOGGER_ERROR
@@ -118,41 +118,47 @@ int mainfromfillindata(int argc, char**argv){
  *******************************************************************/
 
 /* This is the C version of the similarly named function in the python file makecsv3.py
+ *
  * An additional parameter 'tupplelength' is added to provide the length of the parameter
  * 'values', an array of tupple structures. It is not possible to determine the size of
- * an array passed as a parameter and python Ctypes only works with C structures, vs
- * C++ classes and std data structures like vectors and unordered_maps. To get around
+ * an array passed as a parameter.
+ *
+ * This program uses python Ctypes to pass python data structures to C/C++ code. Ctypes only
+ * work with C structures, has no facility to convert python containers like lists and
+ * dictionaries to std C++ data structures like vectors and unordered_maps. To get around
  * this constraint, python lists or dictionaries are passed as arrays of structures and
  * then converted back into vectors or maps in C++. C++ maps and vectors returned to python
  * are first converted into arrays of structures and then passed to python where they can
- * be converted into dictionaries and lists.
+ * are converted back into dictionaries and lists. The performance cost of these transformations
+ * does not prevent a tenfold overall improvement from replacing python code with
+ * C/C++, meaning the application still runs ten times faster.
  */
 
 //Test function
 extern "C"
-TupplesYear fillInDataFromIEOutfile(char* IE_file, Tupple* values, int tupplelength, char* txt_file,bool trace=false){
+TupplesYear fillInDataFromIEOutfile(char* IE_file, Tupple* values_tupples, int tupplelength, char* txt_file,bool trace=false){
 
 	bool this_is_not_a_test = true;
 	bool pr = true; // true usually only in test environment or debugging
-
-	HashMap pydict;
+	std::unordered_map<const char*, const char*> values_dict;
 	if(pr)printf("values passed to and printed from c program: \n\n");
 	for (int i=0; i<tupplelength; i++){
-		if(pr)printf("%20s : %s \n", values[i].key, values[i].value);
-		pydict[values[i].key]=values[i].value;
+		if(pr)printf("%20s : %s \n", values_tupples[i].key, values_tupples[i].value);
+		values_dict[values_tupples[i].key]=values_tupples[i].value;
 
 	}
 	if(pr)printf("\n");
-	static Tupple replaceme = {"key","value"};
-	if(this_is_not_a_test){
-		return fillInForReal(IE_file, &replaceme, 1, txt_file, trace);
+	//static Tupple replaceme = {"key","value"};
+	if(this_is_not_a_test){ // showing return of pointer to imply values are altered or added
+		TupplesYear tupplesYear = fillInForReal(IE_file, &values_dict, txt_file, trace);
+		return tupplesYear;
 	}else{
-		return getValsYear(pydict);
+		return getValsYear(values_dict);
 	}
 }
 
 //Not a test function
-TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char* txt_file,bool trace){
+TupplesYear fillInForReal(char* IE_file, std::unordered_map<const char*, const char*>* values_map, char* txt_file,bool trace){
 
 	logger.debug("hello fill_in_for_real");
 	//TODO: move to header?
@@ -181,7 +187,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 	}
 	FileIn* fileIn = (FileIn*)malloc(sizeof(FileIn));
 
-	for(int i = 0; i < 1; i++){//looptheloop 1000
+	for(int i = 0; i < 1; i++){//looptheloop for testing/scaling test/load testing e.g. loop to 1000
 		readFile(IE_file, fileIn, true);
 	}
 
@@ -256,7 +262,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 		//handler.setParser(parser);
 		int run_num = 1; //looptheloop 1000 for testing purposes
 		for(int i = 0; i < run_num; i++){ //"lenomdeficheavec_éàçôï" test filename
-			parseBuf(fileIn->fileptr, fileIn->size, fileIn->filename, parser);// fileIn->filename); // @suppress("Invalid arguments")
+			parseBuf(fileIn->fileptr, fileIn->size, fileIn->filename, parser, values_map);// fileIn->filename); // @suppress("Invalid arguments")
 		}
 		delete parser;
 
@@ -279,7 +285,7 @@ TupplesYear fillInForReal(char* IE_file, Tupple* values, int valuesLength, char*
 
 }
 
-// https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
+//https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
 //https://stackoverflow.com/questions/238603/how-can-i-get-a-files-size-in-c
 //https://unix.stackexchange.com/questions/621157/why-is-the-type-of-stat-st-size-not-unsigned-int
 //https://stackoverflow.com/questions/62900964/how-to-properly-check-that-an-off-t-value-wont-overflow-when-converted-to-size
@@ -305,7 +311,7 @@ size_t castOffSize(off_t offsize, const char* source="unnamed source"){
 		logger.debug(format("File size {} = {}", source, castoff)); // @suppress("Invalid arguments")
 	} else {
 		castoff = (size_t)-1; // for printf %jd
-		logger.warn(format("ERROR: Failed casting to size_t for {}, (off_t) {}, SIZE_MAX= {}", source, (uintmax_t)offsize, SIZE_MAX )); // @suppress("Invalid arguments")
+		logger.error(format("ERROR: Failed casting to size_t for {}, (off_t) {}, SIZE_MAX= {}", source, (uintmax_t)offsize, SIZE_MAX )); // @suppress("Invalid arguments")
 		if (EXIT) exit(-1);
 	}
 	return castoff;

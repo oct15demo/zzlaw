@@ -113,6 +113,26 @@ Tupple* map2tupples(HashMap realMap){
 	return mapZero;
 }
 
+Tupple* shallow2tupples(HashMap realMap){
+
+	mapLen = realMap.size();
+	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
+	Tupple* mapZero = mapList;
+
+	for (pair<const char*, const char*> entry: realMap){
+		if(pr)cout<<entry.first<<", ";
+
+		if(pr)cout<<entry.first<<", ";
+		mapList->key = entry.first;
+		mapList->value = entry.second;
+		if(pr)cout<<entry.second<<n;
+		mapList++;
+		//printf("%s %s\n", mapList->key, mapList->value);
+	}
+	//cout<<mapList[0].key;
+	return mapZero;
+}
+
 extern "C"
 Tupple* getVals(){
 	if(pr)cout<<"hello from getVals"<<n;

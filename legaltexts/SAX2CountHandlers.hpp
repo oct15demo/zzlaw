@@ -70,7 +70,7 @@ public:
 
 	std::unordered_map<std::string, VecAttributesImpl*>  citations;
 	std::unordered_map<std::string, VecAttributesImpl*>  local_dict;
-	std::unordered_map<std::string, void*>  docket_relations;
+	std::unordered_map<std::string, std::string>  docket_relations;
 
 	static std::set<int>                     citation_line_numbers;
 	//unordered_set uses hash and can't use pointers as key
