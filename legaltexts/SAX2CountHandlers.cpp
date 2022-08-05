@@ -201,6 +201,7 @@ VecAttributesImpl* cloneAttributes(VecAttributesImpl& attrs, bool useScanner=fal
 		newRefVectorOf->addElement(cpXMLAttr);
 
 	}
+	logger.debug("\n\nCITATION  "); // extra spacing to find citation in log easier.
 	logger.debug(bruce.str());
 	newRefVectorOf->size();
 	logger.debug(newRefVectorOf->size());
@@ -232,7 +233,6 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
     	mp_attributes = &attrs;
     	const XMLCh* id_x = attrs.getValue(tr("id"));
     	const Attributes* const_attrs = &attrs;
-    	std::cout<<"\n\n\n\n"<<tr(const_attrs->getValue(tr("entry_type"))) <<"\n\n\n";
 
 		citations[tr(id_x)]= cloneAttributes((VecAttributesImpl&)attrs);
 

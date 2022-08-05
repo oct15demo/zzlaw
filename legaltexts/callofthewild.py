@@ -6,8 +6,8 @@ import ctypes
 class Entry(Structure):
     _fields_ = ("key", c_char_p),("value", c_char_p)
 
-class TxtLocationArray(Structure):
-    _fields_ = ('entries', c_short),('map_array', POINTER(Entry))
+#class TxtLocationArray(Structure):
+#    _fields_ = ('entries', c_short),('map_array', POINTER(Entry))
 
 # The return if going to end of function fill_in_data_from_IE_outfile
 class XMLValue(Structure):

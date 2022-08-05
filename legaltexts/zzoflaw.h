@@ -18,7 +18,6 @@
 #include <errno.h>
 using namespace std;
 
-typedef  unordered_map<const char*, const char*> HashMap;
 typedef struct tuppleware{const char* key; const char* value;} Tupple;
 //TODO: check for memory leaks, NULL ptr hazards, especially using struct instead of class and passing pointers, and through different scopes
 static tuppleware* newTupple(const char* key, const char* value){
@@ -27,7 +26,7 @@ static tuppleware* newTupple(const char* key, const char* value){
 	return newTuppleptr;
 }
 
-typedef struct mapYear {HashMap* valuesMap; string year;} MapYear;
+typedef struct mapYear {std::unordered_map<std::string,std::string>  valuesMap; string year;} MapYear;
 typedef struct tupplesYear {struct tuppleware* tupples; int length; const char* year;} TupplesYear;
 
 const char n = '\n';
@@ -38,7 +37,7 @@ static int mapLen;
 static Tupple tuppledMaps [1];
 
 // see above typedef for HashMap, code here initializes a std::unordered_map
-static HashMap valHash = {
+static std::unordered_map<std::string, std::string> valHash = {
 		{ "id1", "100000"},
 		{ "folder", "scotus"},
 		{ "full_name", "Supreme Court of the United States"},
@@ -51,15 +50,15 @@ static HashMap valHash = {
 		{ "year", "1922"}
     };
 
-Tupple* map2tupples(HashMap realMap);
+Tupple* map2tupples(unordered_map<std::string, std::string> realMap);
 
 extern "C"
 Tupple* getVals();
 
 extern "C"
-TupplesYear getValsYear(HashMap pydict=valHash);
+TupplesYear getValsYear(std::unordered_map<std::string, std::string> pydict=valHash);
 
-TupplesYear fillInForReal(char* IE_file, unordered_map<const char*, const char*>* values_map, char* txt_file,bool trace=false);
+TupplesYear fillInForReal(char* IE_file, unordered_map<std::string, std::string>* values_map, char* txt_file,bool trace=false);
 
 //utils
 bool fileExists(char* filepath);

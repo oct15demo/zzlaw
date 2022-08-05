@@ -65,7 +65,7 @@
 #endif
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<const char*, const char*>* values_map);
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string, std::string>* values_map);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
 //#define LOGGER_ERROR
@@ -140,11 +140,12 @@ TupplesYear fillInDataFromIEOutfile(char* IE_file, Tupple* values_tupples, int t
 
 	bool this_is_not_a_test = true;
 	bool pr = true; // true usually only in test environment or debugging
-	std::unordered_map<const char*, const char*> values_dict;
+	std::unordered_map<std::string, std::string> values_dict;
 	if(pr)printf("values passed to and printed from c program: \n\n");
 	for (int i=0; i<tupplelength; i++){
 		if(pr)printf("%20s : %s \n", values_tupples[i].key, values_tupples[i].value);
 		values_dict[values_tupples[i].key]=values_tupples[i].value;
+		std::string str = "aaa";
 
 	}
 	if(pr)printf("\n");
@@ -158,7 +159,7 @@ TupplesYear fillInDataFromIEOutfile(char* IE_file, Tupple* values_tupples, int t
 }
 
 //Not a test function
-TupplesYear fillInForReal(char* IE_file, std::unordered_map<const char*, const char*>* values_map, char* txt_file,bool trace){
+TupplesYear fillInForReal(char* IE_file, std::unordered_map<std::string,std::string>* values_map, char* txt_file,bool trace){
 
 	logger.debug("hello fill_in_for_real");
 	//TODO: move to header?

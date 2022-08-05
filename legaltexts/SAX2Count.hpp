@@ -37,6 +37,7 @@
 #include <xercesc/sax2/XMLReaderFactory.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 
+void doc_rel_val(std::unordered_map<const char*, const char*>* vals_map, std::vector<XMLCh*> first_cite_type, char* cite_type, std::unordered_map<std::string, std::string> doc_rel);
 // ---------------------------------------------------------------------------
 //  This is a simple class that lets us do easy (though not terribly efficient)
 //  trancoding of XMLCh data to local code page for display.

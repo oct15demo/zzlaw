@@ -67,7 +67,33 @@ static spdlog::logger logger = getLog();
 #include "zzoflaw.h"
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<const char*, const char*>* values_map){
+/* values docket number is set to the docket relations, for */
+void doc_rel_val(unordered_map<std::string, std::string>* vals_map, std::vector<XMLCh*>* first_cite_type, const char* cite_type, std::unordered_map<std::string, std::string>* doc_rel){
+	if (!first_cite_type->empty()){
+		for(XMLCh* case_id:*first_cite_type){
+			if( doc_rel->count(tr(case_id)) >0 ){
+				std::string doc_num = std::string("docket_number");
+				logger.debug(((*vals_map)[doc_num]));
+				//convert string to char* with &string[0]
+				if(logger.level() == spdlog::level::debug){
+					if(true){//((*vals_map)[doc_num])){
+						logger.error(format("values docket_number {} for case_id {} in {} replaced by {}", (*vals_map)["docket_number"],tr(case_id),cite_type, &(*doc_rel)[tr(case_id)][0])); // @suppress("Invalid arguments")
+					}else{
+						logger.debug(format("docket_number {} for case_id {} in {} added to values_map", &(*doc_rel)[tr(case_id)][0], cite_type, tr(case_id))); // @suppress("Invalid arguments")
+					}
+				}
+				(*vals_map)["docket_number"] = &(*doc_rel)[tr(case_id)][0];
+			}else{
+				logger.debug(format("case_id {} in first_other not found in docket_relations",tr(case_id))); // @suppress("Invalid arguments")
+			}
+		}
+	}else{
+		logger.debug(format("{} is empty", cite_type)); // @suppress("Invalid arguments")
+	}
+}
+
+
+int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string,std::string>* values_map){
 
 	XMLCh* xmlch_filename = XMLString::transcode(filename);
 
@@ -77,8 +103,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 
     unsigned long duration;
     bool          errorOccurred = false;
-	//try{
-    if(true){
+
     try{
 		const unsigned long startMillis = XMLPlatformUtils::getCurrentMillis();
 
@@ -102,25 +127,65 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 				}
 		    logger.debug(bruce.str());
 		}
-		std::vector<XMLCh*> first_other = hand->first_case_citations_other;
-		std::unordered_map<std::string, std::string> doc_rel = hand->docket_relations;
 
-		if (!first_other.empty()){
-			for(XMLCh* case_id:first_other){
-				if( doc_rel.count(tr(case_id)) >0 ){
-					//convert string to char* with &string[0]
-					if(logger.level() == spdlog::level::debug){
-						if((*values_map)["docket_number"] != NULL){
-							logger.error(format("values docket_number {} for case_id {} replaced by {}", (*values_map)["docket_number"],tr(case_id),&doc_rel[tr(case_id)][0])); // @suppress("Invalid arguments")
-						}else{
-							logger.debug(format("docket_number {} for case_id {} added to values_map", &doc_rel[tr(case_id)][0],tr(case_id))); // @suppress("Invalid arguments")
+		//TODO: Fix stupid redundancy copied from python where first_X_v_Ys overwrites first_other
+		doc_rel_val(values_map, &hand->first_case_citations_other, "first_other, ", &hand->docket_relations);
+		doc_rel_val(values_map, &hand->first_X_v_Ys, "first_X_v_Ys", &hand->docket_relations);
+		if (hand->first_standard_cases.size()>0){
+			std::unordered_map<std::string, std::string> new_case = *values_map;
+
+			for (XMLCh* standard_case : *&hand->first_standard_cases){
+				VecAttributesImpl* next_citation = hand->citations[std::string(tr(standard_case))];
+				if( next_citation->getValue(tr("standard_reporter")) != NULL &&
+					(*values_map)[std::string("standard_reporter")]== "" && //could use find instead of []
+					std::string(tr(next_citation->getValue(tr("standard_reporter")))) == std::string((*values_map)["standard_reporter"])){
+
+					for(std::string attr_name : {"volume","page_number","year"}){
+						if (next_citation->getValue(tr(attr_name.c_str()))!= NULL && values_map->find(attr_name)== values_map->end()){
+							new_case[attr_name] = std::string(tr(next_citation->getValue(tr(attr_name.c_str())))); //add the citation attribute to the copy of values
 						}
 					}
-					(*values_map)["docket_number"] = &doc_rel[tr(case_id)][0];
 				}
 			}
 		}
 
+		/*
+		if len(first_standard_cases)>0:
+		        output = []
+		        for standard_case in first_standard_cases:
+		            new_case = values.copy()
+		            next_citation = citations[standard_case]
+		            ## if 'standard reporter' matches, they are assumed to be the same citation
+		            ## (or a conflict).  Otherwise, they are assumed to be another "version"
+		            if ('standard_reporter' in next_citation) and  ('standard_reporter' in values) \
+		              and (next_citation['standard_reporter']==values['standard_reporter']):
+		                for attrib in ['volume','page_number','year']:
+		                    if (attrib in next_citation) and (not attrib in values):
+		                        new_case[attrib]=next_citation[attrib]
+
+
+
+		            ###############  STILL TO DO  ###############
+
+
+		            elif not 'standard_reporter' in next_citation:
+		                raise Exception('No standard reporter in citation:'+str(next_citation))
+		            else:
+		                for attrib in ['standard_reporter','volume','page_number','year']:
+		                    if attrib in next_citation:
+		                        if (attrib == 'year') and ((not latest_date) or later_date_string(next_citation[attrib],latest_date)):
+		                            latest_date = next_citation[attrib]
+		                        new_case[attrib]=next_citation[attrib]
+		                if next_citation['id'] in docket_relations:
+		                    new_case['docket_number'] = docket_relations[next_citation['id']]
+		            output.append(new_case)
+		        logger.debug(f'{[values]} , {latest_date}')
+		        return(f'{str(output)} , {latest_date}')
+		    else:
+		        logger.debug(f'{[values]} , {latest_date}')
+		        return(str([values]), latest_date)
+
+*/
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;
 	} catch (const OutOfMemoryException&) {
@@ -138,7 +203,6 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		errorOccurred = true;
 		//continue;
 	}
-    }
 
     //Code below from original SAX2Count.cpp xerces example
 

@@ -86,7 +86,7 @@ class ofunctionstream : private virtual functionbuf, public std::ostream {
  ******************************************************/
 
 
-Tupple* map2tupples(HashMap realMap){
+Tupple* charMap2tupples(std::unordered_map<char*,char*> realMap){
 
 	mapLen = realMap.size();
 	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
@@ -113,7 +113,34 @@ Tupple* map2tupples(HashMap realMap){
 	return mapZero;
 }
 
-Tupple* shallow2tupples(HashMap realMap){
+Tupple* strMap2tupples(std::unordered_map<std::string,std::string> realMap){
+
+	mapLen = realMap.size();
+	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
+	Tupple* mapZero = mapList;
+
+	for (pair<std::string, std::string> entry: realMap){
+		logger.trace(entry.first);
+		int flen = (entry.first.length())+1;
+		int slen = (entry.second.length())+1;
+		char* fptr = (char*)malloc(flen*sizeof(char));
+		char* sptr = (char*)malloc(slen*sizeof(char));
+		strcpy(fptr,entry.first.c_str());
+		strcpy(sptr,entry.second.c_str());
+		fptr[flen-1]='\0';
+		sptr[slen-1]='\0';
+		if(pr)cout<<fptr<<", ";
+		mapList->key = fptr;
+		mapList->value = sptr;
+		logger.trace(mapList[0].key);
+		mapList++;
+		//printf("%s %s\n", mapList->key, mapList->value);
+	}
+	//cout<<mapList[0].key;
+	return mapZero;
+}
+//TODO: shallowStr2tupples used to test if malloc is big performance hit
+Tupple* shallowChar2tupples(std::unordered_map<char*,char*> realMap){
 
 	mapLen = realMap.size();
 	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
@@ -136,16 +163,16 @@ Tupple* shallow2tupples(HashMap realMap){
 extern "C"
 Tupple* getVals(){
 	if(pr)cout<<"hello from getVals"<<n;
-	Tupple* tuppledMap = map2tupples(valHash);
+	Tupple* tuppledMap = strMap2tupples(valHash);
 	//logger.info("hello from getVals");
 
 	return tuppledMap;
 }
 
 extern "C"
-TupplesYear getValsYear(HashMap pydict){
+TupplesYear getValsYear(std::unordered_map<std::string, std::string>  pydict){
 	if(pr)cout<<"hello from getValsYear"<<n;
-	Tupple* tuppledMap = map2tupples(pydict);
+	Tupple* tuppledMap = strMap2tupples(pydict);
 	TupplesYear* valsYear = (TupplesYear*)malloc(sizeof(TupplesYear));
 	valsYear->tupples=tuppledMap;
 	char* year = (char*)malloc(sizeof(char)*5);
