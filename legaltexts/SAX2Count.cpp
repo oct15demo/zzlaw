@@ -92,6 +92,37 @@ void doc_rel_val(unordered_map<std::string, std::string>* vals_map, std::vector<
 	}
 }
 
+std::string strAttrs(VecAttributesImpl* attrs){
+	std::stringstream bruce;
+	for(unsigned int i=0;i<attrs->getLength();i++){
+		bruce << tr(attrs->getLocalName(i))<<" : "<<tr(attrs->getValue(i))<< " | ";
+	}
+	return bruce.str();
+}
+
+bool later_date_string(string date1, string date2){
+
+
+	return true;
+	/*def later_date_string(date_string1,date_string2):
+	    if date_string1 and (not date_string2):
+	        return(True)
+	    elif date_string2 and (not date_string1):
+	        return(False)
+	    elif "_" in date_string1:
+	        return(True)
+	    elif "_" in date_string2:
+	        return(False)
+	    elif (not re.search('^[ 0-9]$',date_string1)):
+	        return(False)
+	    elif (not re.search('^[ 0-9]$',date_string2)):
+	        return(True)
+	    elif int(date_string1)>int(date_string2):
+	        return(True)
+	    else:
+	        return(False)
+*/
+}
 
 int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string,std::string>* values_map){
 
@@ -115,22 +146,24 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		std::unordered_map<std::string, VecAttributesImpl* >cites = hand->citations;
 		logger.debug(cites.size());
 
-		for (std::pair <std::string, VecAttributesImpl*>el: cites) {
 
-			std::stringstream bruce; //bruce stringstream
-
-				bruce << el.first << "    ";
-				for(unsigned int i=0;i<((VecAttributesImpl*)(el.second))->getLength();i++){
-					if(logger.level() == spdlog::level::debug){
-						bruce << tr(((VecAttributesImpl*)(el.second))->getLocalName(i))<<" : "<<tr(((VecAttributesImpl*)(el.second))->getValue(i))<< " | ";
-					}
-				}
-		    logger.debug(bruce.str());
+		if(logger.level() == spdlog::level::debug){
+			for (std::pair <std::string, VecAttributesImpl*>el: cites) {
+				logger.debug(strAttrs((VecAttributesImpl*)el.second));
+			}
 		}
 
 		//TODO: Fix stupid redundancy copied from python where first_X_v_Ys overwrites first_other
 		doc_rel_val(values_map, &hand->first_case_citations_other, "first_other, ", &hand->docket_relations);
 		doc_rel_val(values_map, &hand->first_X_v_Ys, "first_X_v_Ys", &hand->docket_relations);
+
+
+		//std::string late_date = std;;string(tr(hand->latest_date));
+		logger.debug("\n\n\n\n");
+		logger.debug(hand->latest_date!=NULL?tr(hand->latest_date):"latest_date = NULL");
+		//logger.debug(late_date);
+
+
 		if (hand->first_standard_cases.size()>0){
 			std::unordered_map<std::string, std::string> new_case = *values_map;
 
@@ -145,11 +178,54 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 							new_case[attr_name] = std::string(tr(next_citation->getValue(tr(attr_name.c_str())))); //add the citation attribute to the copy of values
 						}
 					}
+				}else if(next_citation->getValue(tr("standard_reporter")) == NULL){
+
+					logger.error(format("No standard reporter in citation, {}",strAttrs(next_citation))); // @suppress("Invalid arguments")
+					string errMsg = format("No standard reporter in citation, {}",strAttrs(next_citation)); // @suppress("Invalid arguments")
+					throw std::runtime_error(errMsg.c_str());
+				}else{
+					for(string attr :{"standard_reporter","volume","page_number","year"}){
+						if(next_citation->getValue(tr(attr.c_str())) != NULL){
+							//string late_date = string(tr(&hand->latest_date));
+							//logger.debug("\n\n\n\n");
+							//logger.debug(late_date);
+							//if(attr == "year" && (late_date == NULL || later_date_string(string(tr(next_citation->getValue(tr("year")))), late_date))){
+							//	;
+							//}
+
+						}
+					}
+							          //          if attrib in next_citation:
+							          //              if (attrib == 'year') and ((not latest_date) or later_date_string(next_citation[attrib],latest_date)):
+							          //                  latest_date = next_citation[attrib]
+							          //              new_case[attrib]=next_citation[attrib]
+							          //      if next_citation['id'] in docket_relations:
+							          //          new_case['docket_number'] = docket_relations[next_citation['id']]
+
 				}
 			}
 		}
 
-		/*
+
+		/*          else:
+		                for attrib in ['standard_reporter','volume','page_number','year']:
+		                    if attrib in next_citation:
+		                        if (attrib == 'year') and ((not latest_date) or later_date_string(next_citation[attrib],latest_date)):
+		                            latest_date = next_citation[attrib]
+		                        new_case[attrib]=next_citation[attrib]
+		                if next_citation['id'] in docket_relations:
+		                    new_case['docket_number'] = docket_relations[next_citation['id']]
+		            output.append(new_case)
+		        logger.debug(f'{[values]} , {latest_date}')
+		        return(f'{str(output)} , {latest_date}')
+		    else:
+		        logger.debug(f'{[values]} , {latest_date}')
+		        return(str([values]), latest_date)
+
+*/
+		 /*
+		 *
+		 *
 		if len(first_standard_cases)>0:
 		        output = []
 		        for standard_case in first_standard_cases:

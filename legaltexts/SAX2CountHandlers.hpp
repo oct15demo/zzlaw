@@ -74,7 +74,7 @@ public:
 
 	static std::set<int>                     citation_line_numbers;
 	//unordered_set uses hash and can't use pointers as key
-	static std::set<const XMLCh*, decltype(cmpx)> entry_types;
+	static std::set<const XMLCh*, decltype(cmp4sort)> entry_types;
 	//static std::set<const XMLCh*> entry_types;
 	static SAX2XMLReaderLoc*        fparser;
 

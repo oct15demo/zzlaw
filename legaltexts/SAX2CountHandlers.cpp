@@ -96,7 +96,7 @@ bool find(vector<T*> vector_x, const T* item_x){
 
 //static members only
 char* entry_type_chptrs[] = { {"case_X_vs_Y"}, {"case_citation_other"}, {"standard_case"}};
-std::set<const XMLCh*, decltype(cmpx)> SAX2CountHandlers::entry_types(cmpx);
+std::set<const XMLCh*, decltype(cmp4sort)> SAX2CountHandlers::entry_types(cmp4sort);
 
 std::set<int> SAX2CountHandlers::citation_line_numbers;
 // ---------------------------------------------------------------------------
@@ -204,7 +204,7 @@ VecAttributesImpl* cloneAttributes(VecAttributesImpl& attrs, bool useScanner=fal
 	logger.debug("\n\nCITATION  "); // extra spacing to find citation in log easier.
 	logger.debug(bruce.str());
 	newRefVectorOf->size();
-	logger.debug(newRefVectorOf->size());
+	logger.debug(format("{} attributes", newRefVectorOf->size())); // @suppress("Invalid arguments")
 	//The scanner can actually be set to NULL and the above scanner construction skipped if the VecAttributesImpl isn't scanning.
 	newAttrs->setVector(newRefVectorOf, newRefVectorOf->size(), scanner, false);
 
@@ -236,7 +236,7 @@ void SAX2CountHandlers::startElement(const XMLCh* const  uri
 
 		citations[tr(id_x)]= cloneAttributes((VecAttributesImpl&)attrs);
 
-    	logger.debug(format("citation is element, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
+    	logger.debug(format("citation element added to citations map, citations[id]=attrs, id={}", tr(id_x))); // @suppress("Invalid arguments")
     	const char* id = tr(id_x);
     	const XMLCh* entry_type_x = attrs.getValue(tr("entry_type"));
         if (entry_type_x == NULL){
