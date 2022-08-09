@@ -101,8 +101,10 @@ std::string strAttrs(VecAttributesImpl* attrs){
 	return bruce.str();
 }
 
-void testVals(std::string strAttrs(VecAttributesImpl* attrs){
+void testVals(VecAttributesImpl* attrs, const char* attrName){
 	std::stringstream bruce;
+	XMLCh* attrVal = attrs->getValue(tr(attrName));
+	logger.debug(attrVal==NULL?"XMLCh* = NULL";(std::string("XMLCh* = ")  + std::string(tr(attrs->getValue(tr(attrName))))));
 	for(unsigned int i=0;i<attrs->getLength();i++){
 		bruce << tr(attrs->getLocalName(i))<<" : "<<tr(attrs->getValue(i))<< " | ";
 	}
