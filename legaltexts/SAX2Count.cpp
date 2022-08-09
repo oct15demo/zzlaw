@@ -49,6 +49,7 @@
 #include <locale.h>
 #include <locale>
 #include <clocale>
+#include <regex>
 
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
@@ -100,28 +101,36 @@ std::string strAttrs(VecAttributesImpl* attrs){
 	return bruce.str();
 }
 
-bool later_date_string(string date1, string date2){
+void testVals(std::string strAttrs(VecAttributesImpl* attrs){
+	std::stringstream bruce;
+	for(unsigned int i=0;i<attrs->getLength();i++){
+		bruce << tr(attrs->getLocalName(i))<<" : "<<tr(attrs->getValue(i))<< " | ";
+	}
+}
 
 
-	return true;
-	/*def later_date_string(date_string1,date_string2):
-	    if date_string1 and (not date_string2):
-	        return(True)
-	    elif date_string2 and (not date_string1):
-	        return(False)
-	    elif "_" in date_string1:
-	        return(True)
-	    elif "_" in date_string2:
-	        return(False)
-	    elif (not re.search('^[ 0-9]$',date_string1)):
-	        return(False)
-	    elif (not re.search('^[ 0-9]$',date_string2)):
-	        return(True)
-	    elif int(date_string1)>int(date_string2):
-	        return(True)
-	    else:
-	        return(False)
-*/
+
+//return true when date1 date_string1 is later date
+bool later_date_string(string date1, string date2){     //def later_date_string(date_string1,date_string2):
+
+	// C++ implementation							    // original python code 							// comments
+	if((date1 != NULL) && (date2 == NULL)){					//	if date1  and (not date_string2):
+		return true;									//		return(True)
+	}else if((date2 != NULL) && (date1 == NULL)){			//	elif date_string2 and (not date_string1):
+	    return false;									//		return(False)
+	}else if(date1.find("_") != std::string::npos){		//	elif "_" in date_string1:                    	//bug? 2022_01 > 2022_02 ? second term unchecked
+	    return true;									//		return(True)
+	}else if(date2.find("_") != std::string::npos){		//	elif "_" in date_string2:                    	//bug? what if they are different years and first is later?
+	    return false;									//		return(False)
+	}else if(!regex_match(date1,regex('^[ 0-9]$'))){	//	elif (not re.search('^[ 0-9]$',date_string1)):	//does not match 1 single digit or space
+	    return false;									//		return(False)
+	}else if(!regex_match(date2,regex('^[ 0-9]$'))){	//	elif (not re.search('^[ 0-9]$',date_string2)):
+	    return true;									//		return(True)
+	}else if(std::stoi(date1)> std::stoi(date2)){		//	elif int(date_string1)>int(date_string2):
+	    return true;									//		return(True)
+	}else{												//	else
+	    return false;									//		return(False)
+	}
 }
 
 int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string,std::string>* values_map){
@@ -157,12 +166,16 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		doc_rel_val(values_map, &hand->first_case_citations_other, "first_other, ", &hand->docket_relations);
 		doc_rel_val(values_map, &hand->first_X_v_Ys, "first_X_v_Ys", &hand->docket_relations);
 
-
-		//std::string late_date = std;;string(tr(hand->latest_date));
-		logger.debug("\n\n\n\n");
 		logger.debug(hand->latest_date!=NULL?tr(hand->latest_date):"latest_date = NULL");
-		//logger.debug(late_date);
 
+		//TODO:: make into a function
+		/*for (std::pair <std::string, VecAttributesImpl*>el: hand->citations) { //latest_date not NULL iif year != NULL && entry_type == (XvY or other)?
+				logger.debug(strAttrs((VecAttributesImpl*)el.second)); // print all attributes
+				logger.debug(el.second->getValue(tr("year"))==NULL?"year is NULL":tr(el.second->getValue(tr("year")))); //only year
+				logger.debug(el.second->getValue(el.second->getValue(tr("entry_type")))); //only entry_type
+		}
+		logger.debug("\n\n\n\n\n\n\n");
+		*/
 
 		if (hand->first_standard_cases.size()>0){
 			std::unordered_map<std::string, std::string> new_case = *values_map;
