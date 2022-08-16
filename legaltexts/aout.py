@@ -71,6 +71,9 @@ print("\n    Part returned as array of tuple structures:\n")
 #print(f'{values.valuesMapVector[0][0].valuesMap[0].value.decode("utf-8"):>20}')
 #print(f'{values.valuesMapVector[0][0].mapLength:>20}')
 
+# Note:The second subscript to access valuesMap is due valuesMapVector holding an array of pointers to arrays of Tupples.
+# See function getValsYear in fillindata.cpp for longer explanation of data structures used.
+
 for i in range(values.vectorLength):
    for j in range(values.valuesMapVector[0][0].mapLength):
        print(f'{values.valuesMapVector[i][0].valuesMap[j].key.decode("utf-8"):>20} : {values.valuesMapVector[i][0].valuesMap[j].value.decode("utf-8"):>20}')
