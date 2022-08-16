@@ -29,54 +29,14 @@
 
 // ([{'id1': '100000', 'folder': 'scotus', 'full_name': 'Supreme Court of the United States', 'casename': 'morrisdale coal co v united states', 'party1': 'MORRISDALE COAL CO', 'party2': 'UNITED STATES', 'standard_reporter': 'U.S.', 'volume': '259', 'page_number': '188', 'year': '1922'}], '1922')
 /*
-If using Eclipse, properties, C/C++ Build, Settings, GCC C++ Compiler, Dialect, Language standard, you can select ISO C++11 (-std=c++0x).
+If using Eclipse, properties, C/C++ Build, Settings, GCC C++ Compiler, Dialect, Language standard,
+you can select ISO C++11 (-std=c++0x), but better to enter on input field below
+     Other dialect flags      -std=c++2a
+which then uses C++ 20, assuming you have it installed.
 This was on a MacAir macOS 10.13 Eclipse Oxygen 3a c++ 4.2.1 clang 900 –
 */
 
 static spdlog::logger logger = getLog();
-
-
-typedef std::function<void(std::string)> function_type;
-
-class functionbuf : public std::streambuf {
-	private:
-
-	typedef std::streambuf::traits_type traits_type;
-
-    function_type d_function;
-
-    char  d_buffer[1024];
-
-    int overflow(int c) {
-        if (!traits_type::eq_int_type(c, traits_type::eof())) {
-            *this->pptr() = traits_type::to_char_type(c);
-            this->pbump(1);
-        }
-        return this->sync()? traits_type::not_eof(c): traits_type::eof();
-    }
-
-    int sync() {
-        if (this->pbase() != this->pptr()) {
-            this->d_function(std::string(this->pbase(), this->pptr()));
-            this->setp(this->pbase(), this->epptr());
-        }
-        return 0;
-    }
-
-	public:
-
-    functionbuf(function_type const& function): d_function(function) {
-        this->setp(this->d_buffer, this->d_buffer + sizeof(this->d_buffer) - 1);
-    }
-};
-
-class ofunctionstream : private virtual functionbuf, public std::ostream {
-	public:
-
-    ofunctionstream(function_type const& function): functionbuf(function), std::ostream(static_cast<std::streambuf*>(this)) {
-        this->flags(std::ios_base::unitbuf);
-    }
-};
 
 
 /******************************************************
@@ -88,7 +48,7 @@ class ofunctionstream : private virtual functionbuf, public std::ostream {
 
 Tupple* charMap2tupples(std::unordered_map<char*,char*> realMap){
 
-	mapLen = realMap.size();
+	int mapLen = realMap.size();
 	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
 	Tupple* mapZero = mapList;
 
@@ -113,14 +73,14 @@ Tupple* charMap2tupples(std::unordered_map<char*,char*> realMap){
 	return mapZero;
 }
 
-Tupple* strMap2tupples(std::unordered_map<std::string,std::string> realMap){
+Tupples* strMap2tupples(std::unordered_map<std::string,std::string>*realMap){
 
-	mapLen = realMap.size();
-	Tupple* mapList = (Tupple*)malloc(mapLen * sizeof(Tupple));
-	Tupple* mapZero = mapList;
-
-	for (pair<std::string, std::string> entry: realMap){
-		logger.trace(entry.first);
+	int mapLen = realMap->size();
+	Tupple* tuppleArray = new Tupple[mapLen];
+	Tupple* tupplePtr = tuppleArray; //
+	Tupples* tupples = new Tupples; //Tupples holds Tupple* and length, like std::array
+	int len=0;
+	for (pair<std::string, std::string> entry: *realMap){
 		int flen = (entry.first.length())+1;
 		int slen = (entry.second.length())+1;
 		char* fptr = (char*)malloc(flen*sizeof(char));
@@ -129,15 +89,15 @@ Tupple* strMap2tupples(std::unordered_map<std::string,std::string> realMap){
 		strcpy(sptr,entry.second.c_str());
 		fptr[flen-1]='\0';
 		sptr[slen-1]='\0';
-		if(pr)cout<<fptr<<", ";
-		mapList->key = fptr;
-		mapList->value = sptr;
-		logger.trace(mapList[0].key);
-		mapList++;
-		//printf("%s %s\n", mapList->key, mapList->value);
+		tupplePtr->key = fptr;
+		tupplePtr->value = sptr;
+		logger.trace(format("{} : {}",tupplePtr->key, tupplePtr->value)); // @suppress("Invalid arguments")
+		tupplePtr++;
+		len++;
 	}
-	//cout<<mapList[0].key;
-	return mapZero;
+	tupples->tuppledKeyVals = tuppleArray;
+	tupples->length = len;
+	return tupples;
 }
 //TODO: shallowStr2tupples used to test if malloc is big performance hit
 Tupple* shallowChar2tupples(std::unordered_map<char*,char*> realMap){
@@ -160,91 +120,66 @@ Tupple* shallowChar2tupples(std::unordered_map<char*,char*> realMap){
 	return mapZero;
 }
 
-extern "C"
-Tupple* getVals(){
-	if(pr)cout<<"hello from getVals"<<n;
-	Tupple* tuppledMap = strMap2tupples(valHash);
-	//logger.info("hello from getVals");
+/*
+ * The ctypes python-to-c interface cannot use C++ data containers, only C compatible
+ * structures and arrays. Below is an outline of the nested structures used.
+ * The original python code returned a list of dictionaries and a year
+ * [{key:val,key:val},{key:val}], year
+ *
+ * To reproduce the same, there are three structures and two arrays of those structures.
+ * The structures are declared in zzoflaw.h
+ * The innermost is an array of Tupple structures, each Tupple contains two char*
+ * Each array of Tupple structures is contained in a Tupples structure which also
+ * contains the length of the array of Tupples. An array of Tupples structures is
+ * contained in the TupplesYear structure which has three fields,
+ * the Tupples array, length of the Tupples array, and char* for the year.
+ * It can be pictured as:
+ *
+ * TupplesYear{ Tupples[]{Tupple[]{char* key,char* val},int length }, int length, char* year }
+ *
+ * The year field is char*, not int nor date because the original python program uses
+ * "False" as a default value.
+ *
+ * In C++ it might look like this:
+ *
+ * pair<vector<unordered_map<string, string>>,string>
+ *
+ */
 
-	return tuppledMap;
-}
-
 extern "C"
-TupplesYear getValsYear(std::unordered_map<std::string, std::string>  pydict){
-	if(pr)cout<<"hello from getValsYear"<<n;
-	Tupple* tuppledMap = strMap2tupples(pydict);
+TupplesYear getValsYear(std::vector<std::unordered_map<std::string, std::string>*>  elements, std::string yearStr){
+
+	logger.debug(format("number of maps: {}, yearStr = {}",std::to_string(elements.size()), yearStr)); // @suppress("Invalid arguments")
+	int numOfElements = elements.size();
+	int tupplesIndex = 0;
+	Tupples** tupples = new Tupples*[tupplesIndex];
+	Tupples** tupplesPtr = tupples;
+
+	for(std::unordered_map<std::string, std::string>* element: elements){
+		tupplesPtr[tupplesIndex] = strMap2tupples(element);
+		//tupples[tupplei] = nextTupples;
+		tupplesIndex++;
+	}
 	TupplesYear* valsYear = (TupplesYear*)malloc(sizeof(TupplesYear));
-	valsYear->tupples=tuppledMap;
-	char* year = (char*)malloc(sizeof(char)*5);
-	strncpy(year, "False", 5);
-	year[5]='\0';
-	if(pr)cout<<year<<n;
+	valsYear->tupples=tupples;
+	const char* year = yearStr.c_str();
 	valsYear->year=year;
-	valsYear->length=mapLen;
+	valsYear->length=numOfElements;
 	return *valsYear;
 }
 
-void some_function(std::string const& value) {
-    std::cout << "some_function(" << value << ")\n";
-}
-
-int streamcallsfunc() {
-    ofunctionstream out(&some_function);
-    out << "hello" << ',' << " world: " << 42 << "\n";
-    printf("%s", "calling all cars\n");
-
-    auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt> (out);
-    auto streamlogger = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
-    streamlogger->info("Welcome to spdlog going through out, ostream_sink, some_function!");
-
-    out << std::nounitbuf << "not" << " as " << "many" << " calls\n" << std::flush;
-    return 1;
-}
-
-/*
-template<class _Tp, class ..._Args>
-inline _LIBCPP_INLINE_VISIBILITY
-typename enable_if
-<
-    !is_array<_Tp>::value,
-    shared_ptr<_Tp>
->::type logger<spdlog::logger>;*/
-int foo(){
-	logger.debug("hello foo");
-	return 0;
-}
 #include <clocale>
 
 int main(int argc, char**argv){
 	std::setlocale(LC_ALL, "en_US.UTF-8");
-	//spdlog::logger logger = *spdlog::stdout_color_mt("log");
-    ofunctionstream out(&some_function);
-    //auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt> (out);
-    //logptr = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
-    logger.warn("I warned you already");
 
-    //spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v with the at %@");
-    cout << typeid(logger).name() << endl;
-	if(pr)cout<<"hello from fillindata main"<<n;
 	TupplesYear valsyear = getValsYear();
-	Tupple* vals = getVals();
-	if(pr){
-		printf("%s\n",vals[5].key);
-		cout<<valsyear.year<<n;
-		cout<<valsyear.length<<n;
-	}
-	//logger.set_pattern(">>>>>>>>> %H:%M:%S %z %v <<<<<<<<<");
-	//logger.set_pattern(">>>>>>>>> [%H:%M:%S %z] [thread %t] %v %s %# <<<<<<<<<");
-	//malloc error if left in : spdlog::set_default_logger((std::shared_ptr<spdlog::logger>)&logger);
-    SPDLOG_INFO("this work?");
-    logger.info("Welcome to spdlog going through out, ostream_sink, some_function!");
 
-    logger.log(spdlog::source_loc{"/Users/charles/Documents/eclipse-workspace/zzoflaw/legaltexts/fillindata.cpp", 186, static_cast<const char *>(__FUNCTION__)}, spdlog::level::info, ">>>>>>>>> [%H:%M:%S %z] [thread %t] %v %s %# <<<<<<<<<");
+	logger.debug(valsyear.year);
+	logger.debug(valsyear.length);
 
-    foo();
-    footwo();
-	//string s =fmt::format("malloc file {} size_t {}", "filename", 4 );
-	//spdlog::info("/Users/charles/Documents/eclipse-workspace/zzoflaw(199):this is the test of VS format");
+    logger.log(spdlog::source_loc{"/Users/charles/Documents/eclipse-workspace/zzoflaw/legaltexts/fillindata.cpp", 186, static_cast<const char *>(__FUNCTION__)}, spdlog::level::info, " [%H:%M:%S %z] [thread %t] %v %s %# ");
+
     return 1;
 
 }

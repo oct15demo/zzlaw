@@ -103,39 +103,50 @@ std::string strAttrs(VecAttributesImpl* attrs){
 
 void testVals(VecAttributesImpl* attrs, const char* attrName){
 	std::stringstream bruce;
-	XMLCh* attrVal = attrs->getValue(tr(attrName));
-	logger.debug(attrVal==NULL?"XMLCh* = NULL";(std::string("XMLCh* = ")  + std::string(tr(attrs->getValue(tr(attrName))))));
+	std::string attrStr = std::string(attrName);
+	XMLCh* attrVal = (XMLCh*)attrs->getValue(tr(attrName));
+	logger.debug(attrVal==NULL?"XMLCh* for " + attrStr + " = NULL":(std::string("XMLCh* for ")  + attrStr + " = " + std::string(tr(attrs->getValue(tr(attrName))))));
+
 	for(unsigned int i=0;i<attrs->getLength();i++){
 		bruce << tr(attrs->getLocalName(i))<<" : "<<tr(attrs->getValue(i))<< " | ";
 	}
+	logger.debug("testVals\n\n\n\n\n\n\n");
+	logger.debug(bruce.str());
 }
 
 
 
 //return true when date1 date_string1 is later date
-bool later_date_string(string date1, string date2){     //def later_date_string(date_string1,date_string2):
+//date1 is the citation data, date2 is current latest year
+bool later_date_string(const XMLCh* date1, const XMLCh* date2){ //def later_date_string(date_string1,date_string2):
 
-	// C++ implementation							    // original python code 							// comments
-	if((date1 != NULL) && (date2 == NULL)){					//	if date1  and (not date_string2):
-		return true;									//		return(True)
-	}else if((date2 != NULL) && (date1 == NULL)){			//	elif date_string2 and (not date_string1):
-	    return false;									//		return(False)
-	}else if(date1.find("_") != std::string::npos){		//	elif "_" in date_string1:                    	//bug? 2022_01 > 2022_02 ? second term unchecked
-	    return true;									//		return(True)
-	}else if(date2.find("_") != std::string::npos){		//	elif "_" in date_string2:                    	//bug? what if they are different years and first is later?
-	    return false;									//		return(False)
-	}else if(!regex_match(date1,regex('^[ 0-9]$'))){	//	elif (not re.search('^[ 0-9]$',date_string1)):	//does not match 1 single digit or space
-	    return false;									//		return(False)
-	}else if(!regex_match(date2,regex('^[ 0-9]$'))){	//	elif (not re.search('^[ 0-9]$',date_string2)):
-	    return true;									//		return(True)
-	}else if(std::stoi(date1)> std::stoi(date2)){		//	elif int(date_string1)>int(date_string2):
-	    return true;									//		return(True)
-	}else{												//	else
-	    return false;									//		return(False)
-	}
+	// C++ implementation							//	original python code 							// comments
+
+	if((date1 != NULL) && (date2 == NULL))			//	if date1  and (not date_string2):
+		return true;								//		return(True)
+	if((date2 != NULL) && (date1 == NULL))			//	elif date_string2 and (not date_string1):
+	    return false;								//		return(False)
+	std::string date1str = std::string(tr(date1));
+	std::string date2str = std::string(tr(date2));
+	if(date1str.find("_") != std::string::npos)		//	elif "_" in date_string1:                    	//bug? 2022_01 > 2022_02 ? second term unchecked
+	    return true;								//		return(True)
+	if(date2str.find("_") != std::string::npos)		//	elif "_" in date_string2:                   	//bug? what if they are different years and first is later?
+	    return false;								//		return(False)
+	if(!regex_match(date1str,regex("^[ 0-9]$")))	//	elif (not re.search('^[ 0-9]$',date_string1)):	//does not match 1 single digit or space
+	    return false;								//		return(False)
+	if(!regex_match(date2str,regex("^[ 0-9]$")))	//	elif (not re.search('^[ 0-9]$',date_string2)):
+	    return true;								//		return(True)
+	if(std::stoi(date1str)> std::stoi(date2str))	//	elif int(date_string1)>int(date_string2):
+	    return true;								//		return(True)
+													//	else
+	return false;									//		return(False)
 }
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string,std::string>* values_map){
+std::string get_latest(SAX2CountHandlers* hand){
+	return hand->latest_date==NULL?"False":tr(hand->latest_date);
+}
+
+TupplesYear parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string,std::string>* values_map){
 
 	XMLCh* xmlch_filename = XMLString::transcode(filename);
 
@@ -157,33 +168,26 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		std::unordered_map<std::string, VecAttributesImpl* >cites = hand->citations;
 		logger.debug(cites.size());
 
-
 		if(logger.level() == spdlog::level::debug){
 			for (std::pair <std::string, VecAttributesImpl*>el: cites) {
 				logger.debug(strAttrs((VecAttributesImpl*)el.second));
+				//testVals(el.second, "year");
 			}
 		}
 
-		//TODO: Fix stupid redundancy copied from python where first_X_v_Ys overwrites first_other
+		//TODO: Fix redundancy copied from python where first_X_v_Ys overwrites first_other
 		doc_rel_val(values_map, &hand->first_case_citations_other, "first_other, ", &hand->docket_relations);
 		doc_rel_val(values_map, &hand->first_X_v_Ys, "first_X_v_Ys", &hand->docket_relations);
 
 		logger.debug(hand->latest_date!=NULL?tr(hand->latest_date):"latest_date = NULL");
 
-		//TODO:: make into a function
-		/*for (std::pair <std::string, VecAttributesImpl*>el: hand->citations) { //latest_date not NULL iif year != NULL && entry_type == (XvY or other)?
-				logger.debug(strAttrs((VecAttributesImpl*)el.second)); // print all attributes
-				logger.debug(el.second->getValue(tr("year"))==NULL?"year is NULL":tr(el.second->getValue(tr("year")))); //only year
-				logger.debug(el.second->getValue(el.second->getValue(tr("entry_type")))); //only entry_type
-		}
-		logger.debug("\n\n\n\n\n\n\n");
-		*/
-
+		//TODO: Logging for the logic below
 		if (hand->first_standard_cases.size()>0){
-			std::unordered_map<std::string, std::string> new_case = *values_map;
+			std::vector<unordered_map<std::string, std::string>> output;
 
 			for (XMLCh* standard_case : *&hand->first_standard_cases){
 				VecAttributesImpl* next_citation = hand->citations[std::string(tr(standard_case))];
+				std::unordered_map<std::string, std::string> new_case = *values_map;
 				if( next_citation->getValue(tr("standard_reporter")) != NULL &&
 					(*values_map)[std::string("standard_reporter")]== "" && //could use find instead of []
 					std::string(tr(next_citation->getValue(tr("standard_reporter")))) == std::string((*values_map)["standard_reporter"])){
@@ -199,26 +203,46 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 					string errMsg = format("No standard reporter in citation, {}",strAttrs(next_citation)); // @suppress("Invalid arguments")
 					throw std::runtime_error(errMsg.c_str());
 				}else{
+					const XMLCh* late_date = (hand->latest_date);
 					for(string attr :{"standard_reporter","volume","page_number","year"}){
 						if(next_citation->getValue(tr(attr.c_str())) != NULL){
-							//string late_date = string(tr(&hand->latest_date));
-							//logger.debug("\n\n\n\n");
-							//logger.debug(late_date);
-							//if(attr == "year" && (late_date == NULL || later_date_string(string(tr(next_citation->getValue(tr("year")))), late_date))){
-							//	;
-							//}
+							if(attr == "year" && (late_date == NULL || later_date_string(late_date, next_citation->getValue(tr("year"))))){
+								hand->latest_date = next_citation->getValue(tr("year"));
+							}
+							new_case[attr]=tr(next_citation->getValue(tr(attr.c_str())));
 
 						}
 					}
-							          //          if attrib in next_citation:
-							          //              if (attrib == 'year') and ((not latest_date) or later_date_string(next_citation[attrib],latest_date)):
-							          //                  latest_date = next_citation[attrib]
-							          //              new_case[attrib]=next_citation[attrib]
-							          //      if next_citation['id'] in docket_relations:
-							          //          new_case['docket_number'] = docket_relations[next_citation['id']]
-
+					const XMLCh* citeId = next_citation->getValue(tr("id"));
+					if (citeId != NULL){
+						std::string idStr = string(tr(citeId));
+						if(hand->docket_relations.find(idStr)!= hand->docket_relations.end() ){
+							new_case["docket_number"] = "shit";
+							std::string doc_rel = hand->docket_relations[idStr];
+						}
+					}
 				}
+				output.insert(output.begin(),new_case);
 			}
+
+			// return(f'{str(output)} , {latest_date}')
+			std::string yearStr = get_latest(hand);
+
+		//	output.size();
+		//	return getValsYear(&output, yearStr);
+			//TODO: test returning empty structures
+			return getValsYear();
+		//	return NULL;
+
+
+		}else{
+
+			//  return(str([values]), latest_date)
+			std::string yearStr = get_latest(hand);
+		//	values_map->size();
+			return getValsYear();
+		//	return getValsYear(values_map, yearStr);
+
 		}
 
 
@@ -227,7 +251,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		                    if attrib in next_citation:
 		                        if (attrib == 'year') and ((not latest_date) or later_date_string(next_citation[attrib],latest_date)):
 		                            latest_date = next_citation[attrib]
-		                        new_case[attrib]=next_citation[attrib]
+-		                        new_case[attrib]=next_citation[attrib]
 		                if next_citation['id'] in docket_relations:
 		                    new_case['docket_number'] = docket_relations[next_citation['id']]
 		            output.append(new_case)
@@ -277,6 +301,10 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		        return(str([values]), latest_date)
 
 */
+
+
+	// This is xerces SAX2Count example code:
+
 		const unsigned long endMillis = XMLPlatformUtils::getCurrentMillis();
 		duration = endMillis - startMillis;
 	} catch (const OutOfMemoryException&) {
@@ -294,6 +322,7 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 		errorOccurred = true;
 		//continue;
 	}
+
 
     //Code below from original SAX2Count.cpp xerces example
 
@@ -319,9 +348,10 @@ int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2
 	//And call the termination method
 	XMLPlatformUtils::Terminate();
 */
+	//TODO: error statements throw exception
 	if (errorOccurred)
-		return 4;
+		return getValsYear();
 	else
-		return 0;
+		return getValsYear();
 
 }

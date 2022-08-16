@@ -65,7 +65,7 @@
 #endif
 
 
-int parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string, std::string>* values_map);
+TupplesYear parseBuf(unsigned char* fileBuf, int fileBufSize, const char* filename, SAX2XMLReader* parser, unordered_map<std::string, std::string>* values_map);
 
 //ifdef LOGGER_ERROR in logging.h since xercesc/src/framework/XMLErrorReporter function 'error' conflicts
 //#define LOGGER_ERROR
@@ -101,9 +101,9 @@ unsigned char* getDataPtr(){
 int mainfromfillindata(int argc, char**argv){
 	if(pr)cout<<"hello from fillindata main"<<n;
 	TupplesYear valsyear = getValsYear();
-	Tupple* vals = getVals();
+	//Tupple* vals = getVals();
 	if(pr){
-		printf("%s\n",vals[5].key);
+		//printf("%s\n",vals[5].key);
 		cout<<valsyear.year<<n;
 		cout<<valsyear.length<<n;
 	}
@@ -154,7 +154,8 @@ TupplesYear fillInDataFromIEOutfile(char* IE_file, Tupple* values_tupples, int t
 		TupplesYear tupplesYear = fillInForReal(IE_file, &values_dict, txt_file, trace);
 		return tupplesYear;
 	}else{
-		return getValsYear(values_dict);
+		//std::vector<std::unordered_map<std::string, std::string>*> vecOfVals_dict = {&values_dict};
+		//return getValsYear(&vecOfVals_dict);
 	}
 }
 

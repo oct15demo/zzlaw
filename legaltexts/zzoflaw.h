@@ -18,16 +18,13 @@
 #include <errno.h>
 using namespace std;
 
-typedef struct tuppleware{const char* key; const char* value;} Tupple;
 //TODO: check for memory leaks, NULL ptr hazards, especially using struct instead of class and passing pointers, and through different scopes
-static tuppleware* newTupple(const char* key, const char* value){
-	struct tuppleware* newTuppleptr = (tuppleware*)malloc(sizeof(struct tuppleware));
-	newTuppleptr->key = key; newTuppleptr->value = value;
-	return newTuppleptr;
-}
 
-typedef struct mapYear {std::unordered_map<std::string,std::string>  valuesMap; string year;} MapYear;
-typedef struct tupplesYear {struct tuppleware* tupples; int length; const char* year;} TupplesYear;
+typedef struct tuppleware{const char* key; const char* value;} Tupple;
+
+typedef struct tupples {struct tuppleware*  tuppledKeyVals; int length;} Tupples;
+//typedef struct tupplesYear {struct tuppleware** tupples; int length; const char* year;} TupplesYear; //without Tupples
+typedef struct tupplesYear {Tupples** tupples; int length; const char* year;} TupplesYear;
 
 const char n = '\n';
 const int pr = 0;
@@ -36,7 +33,7 @@ static int mapLen;
 
 static Tupple tuppledMaps [1];
 
-// see above typedef for HashMap, code here initializes a std::unordered_map
+// code here initializes a std::unordered_map for testing
 static std::unordered_map<std::string, std::string> valHash = {
 		{ "id1", "100000"},
 		{ "folder", "scotus"},
@@ -50,13 +47,16 @@ static std::unordered_map<std::string, std::string> valHash = {
 		{ "year", "1922"}
     };
 
+#include <vector>
+static std::vector<std::unordered_map<std::string,std::string>*> vecValHash = {&valHash};
+
 Tupple* map2tupples(unordered_map<std::string, std::string> realMap);
 
 extern "C"
-Tupple* getVals();
+Tupples* getVals();
 
 extern "C"
-TupplesYear getValsYear(std::unordered_map<std::string, std::string> pydict=valHash);
+TupplesYear getValsYear(std::vector<std::unordered_map<std::string, std::string>*> = vecValHash, std::string yearStr="False");
 
 TupplesYear fillInForReal(char* IE_file, unordered_map<std::string, std::string>* values_map, char* txt_file,bool trace=false);
 
